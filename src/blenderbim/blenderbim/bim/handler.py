@@ -51,8 +51,8 @@ def name_callback(obj, data):
         return
 
     if isinstance(obj, bpy.types.Material):
-        if obj.BIMMaterialProperties.ifc_style_id:
-            IfcStore.get_file().by_id(obj.BIMMaterialProperties.ifc_style_id).Name = obj.name
+        if ifc_definition_id := obj.BIMStyleProperties.ifc_definition_id:
+            IfcStore.get_file().by_id(ifc_definition_id).Name = obj.name
         refresh_ui_data()
         return
 
@@ -291,12 +291,13 @@ def load_post(scene):
     ifcopenshell.api.owner.settings.get_application = get_application
     AuthoringData.type_thumbnails = {}
 
-    if not bpy.context.preferences.addons["blenderbim"].preferences.should_setup_toolbar:
+    preferences = tool.Blender.get_addon_preferences()
+    if not preferences.should_setup_toolbar:
         tool.Blender.unregister_toolbar()
 
-    if bpy.context.preferences.addons["blenderbim"].preferences.should_setup_workspace:
+    if preferences.should_setup_workspace:
         if "BIM" in bpy.data.workspaces:
-            if bpy.context.preferences.addons["blenderbim"].preferences.activate_workspace:
+            if preferences.activate_workspace:
                 bpy.context.window.workspace = bpy.data.workspaces["BIM"]
         else:
             bpy.ops.workspace.append_activate(idname="BIM", filepath=os.path.join(cwd, "data", "workspace.blend"))

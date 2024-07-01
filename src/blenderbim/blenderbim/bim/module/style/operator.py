@@ -25,7 +25,6 @@ import blenderbim.core.style as core
 import ifcopenshell.api
 import ifcopenshell.api.style
 import ifcopenshell.util.representation
-from blenderbim.bim.module.style.prop import switch_shading
 from pathlib import Path
 from mathutils import Vector
 
@@ -118,7 +117,7 @@ class UnlinkStyle(bpy.types.Operator, tool.Ifc.Operator):
         # Don't check blender_material and style_id as this operator is only called from UI.
         assert isinstance(self.blender_material, str)  # Type checker.
         material = bpy.data.materials[self.blender_material]
-        style_id = material.BIMMaterialProperties.ifc_style_id
+        style_id = material.BIMStyleProperties.ifc_definition_id
         style = tool.Ifc.get_entity_by_id(style_id)
 
         # Material is linked to a style from a different project.
@@ -158,38 +157,25 @@ class UnlinkStyle(bpy.types.Operator, tool.Ifc.Operator):
         return {"FINISHED"}
 
 
-class EnableEditingStyle(bpy.types.Operator, tool.Ifc.Operator):
+class EnableEditingStyle(bpy.types.Operator):
     bl_idname = "bim.enable_editing_style"
     bl_label = "Enable Editing Style"
     bl_options = {"REGISTER", "UNDO"}
     style: bpy.props.IntProperty(default=0)
 
-    def _execute(self, context):
-        props = bpy.context.scene.BIMStylesProperties
-        style = tool.Ifc.get().by_id(self.style)
-        props.is_editing_style = style.id()
-        props.is_editing_class = "IfcSurfaceStyle"
-        attributes = props.attributes
-        attributes.clear()
-        blenderbim.bim.helper.import_attributes2(style, attributes)
+    def execute(self, context):
+        core.enable_editing_style(tool.Style, tool.Ifc.get().by_id(self.style))
+        return {"FINISHED"}
 
 
-class DisableEditingStyle(bpy.types.Operator, tool.Ifc.Operator):
+class DisableEditingStyle(bpy.types.Operator):
     bl_idname = "bim.disable_editing_style"
     bl_options = {"REGISTER", "UNDO"}
     bl_label = "Disable Editing Style"
 
-    def _execute(self, context):
-        props = bpy.context.scene.BIMStylesProperties
-
-        style = tool.Ifc.get().by_id(props.is_editing_style)
-        material = tool.Ifc.get_object(style)
-        tool.Style.reload_material_from_ifc(material)
-        props.is_editing_style = 0
-
-        # restore selected style type
-        material = tool.Ifc.get_object(style)
-        material.BIMStyleProperties.active_style_type = material.BIMStyleProperties.active_style_type
+    def execute(self, context):
+        core.disable_editing_style(tool.Style)
+        return {"FINISHED"}
 
 
 class EditStyle(bpy.types.Operator, tool.Ifc.Operator):
@@ -198,12 +184,7 @@ class EditStyle(bpy.types.Operator, tool.Ifc.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def _execute(self, context):
-        props = bpy.context.scene.BIMStylesProperties
-        style = tool.Ifc.get().by_id(props.is_editing_style)
-        attributes = blenderbim.bim.helper.export_attributes(props.attributes)
-        ifcopenshell.api.run("style.edit_presentation_style", tool.Ifc.get(), style=style, attributes=attributes)
-        props.is_editing_style = 0
-        core.load_styles(tool.Style, style_type=props.style_type)
+        core.edit_style(tool.Ifc, tool.Style)
 
 
 class UpdateCurrentStyle(bpy.types.Operator):
@@ -235,7 +216,7 @@ class UpdateCurrentStyle(bpy.types.Operator):
 
         for obj in context.selected_objects:
             for mat in obj.data.materials:
-                if mat and mat.BIMMaterialProperties.ifc_style_id != 0:
+                if mat and mat.BIMStyleProperties.ifc_definition_id != 0:
                     mat.BIMStyleProperties.active_style_type = current_style_type
         return {"FINISHED"}
 
@@ -683,12 +664,12 @@ class EnableEditingSurfaceStyle(bpy.types.Operator, tool.Ifc.Operator):
         active_style_type = material.BIMStyleProperties.active_style_type
         if self.ifc_class == "IfcExternallyDefinedSurfaceStyle" and active_style_type != "External":
             if tool.Style.has_blender_external_style(style_elements):
-                switch_shading(material, "External")
+                tool.Style.switch_shading(material, "External")
         elif (
             self.ifc_class in ("IfcSurfaceStyleShading", "IfcSurfaceStyleRendering", "IfcSurfaceStyleWithTextures")
             and active_style_type != "Shading"
         ):
-            switch_shading(material, "Shading")
+            tool.Style.switch_shading(material, "Shading")
 
 
 class EditSurfaceStyle(bpy.types.Operator, tool.Ifc.Operator):
@@ -902,7 +883,7 @@ class SaveUVToStyle(bpy.types.Operator, tool.Ifc.Operator):
         obj = context.active_object
 
         # find active style item
-        style_id = material.BIMMaterialProperties.ifc_style_id
+        style_id = material.BIMStyleProperties.ifc_definition_id
         style = ifc_file.by_id(style_id)
 
         def get_active_representation_items():

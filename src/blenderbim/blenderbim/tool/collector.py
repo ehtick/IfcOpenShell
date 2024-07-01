@@ -45,12 +45,24 @@ class Collector(blenderbim.core.tool.Collector):
         elif element.is_a("IfcStructuralItem"):
             collection = cls._create_project_child_collection("IfcStructuralItem")
             cls.link_to_collection_safe(obj, collection)
+        elif element.is_a("IfcLinearPositioningElement"):
+            collection = cls._create_project_child_collection("IfcLinearPositioningElement")
+            collection.hide_viewport = False
+            cls.link_to_collection_safe(obj, collection)
+        elif element.is_a("IfcReferent"):
+            collection = cls._create_project_child_collection("IfcReferent")
+            collection.hide_viewport = False
+            cls.link_to_collection_safe(obj, collection)
         elif tool.Ifc.get_schema() == "IFC2X3" and element.is_a("IfcSpatialStructureElement"):
             if collection := cls._create_own_collection(obj):
                 cls.link_to_collection_safe(obj, collection)
                 project_obj = tool.Ifc.get_object(tool.Ifc.get().by_type("IfcProject")[0])
                 cls.link_to_collection_safe(collection, project_obj.BIMObjectProperties.collection)
-        elif tool.Ifc.get_schema() != "IFC2X3" and element.is_a("IfcSpatialElement"):
+        elif (
+            tool.Ifc.get_schema() != "IFC2X3"
+            and element.is_a("IfcSpatialElement")
+            and not element.is_a("IfcSpatialZone")
+        ):
             if collection := cls._create_own_collection(obj):
                 cls.link_to_collection_safe(obj, collection)
                 project_obj = tool.Ifc.get_object(tool.Ifc.get().by_type("IfcProject")[0])
@@ -77,6 +89,7 @@ class Collector(blenderbim.core.tool.Collector):
                                     cls.link_to_collection_safe(obj, drawing_obj.BIMObjectProperties.collection)
         else:
             collection = cls._create_project_child_collection("Unsorted")
+            collection.hide_viewport = False
             cls.link_to_collection_safe(obj, collection)
 
     @classmethod
@@ -94,6 +107,7 @@ class Collector(blenderbim.core.tool.Collector):
     def _create_own_collection(cls, obj: bpy.types.Object) -> bpy.types.Collection:
         """get or create own collection for the element"""
         if obj.BIMObjectProperties.collection:
+            obj.BIMObjectProperties.collection.name = obj.name
             return
         collection = bpy.data.collections.new(obj.name)
         obj.BIMObjectProperties.collection = collection

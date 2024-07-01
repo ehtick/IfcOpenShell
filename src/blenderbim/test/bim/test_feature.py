@@ -20,6 +20,7 @@ import os
 import bpy
 import traceback
 import webbrowser
+import numpy as np
 import ifcopenshell
 import blenderbim.tool as tool
 import blenderbim.bim
@@ -411,10 +412,10 @@ def the_collection_name_is_unselectable(name: str) -> None:
 @then(parsers.parse('the collection "{name}" exists in viewlayer'))
 def the_collection_exists_in_viewlayer(name: str) -> bpy.types.LayerCollection:
     col = the_collection_name_exists(name)
-    layer = tool.Blender.get_layer_collection(col)
-    if not layer:
+    results = tool.Blender.get_layer_collections_mapping([col])
+    if not (layer_collection := results.get(col, None)):
         assert False, f'The collection "{name}" is not present in the current viewlayer'
-    return layer
+    return layer_collection
 
 
 @then(parsers.parse('the collection "{name}" exclude status is "{exclude}"'))
@@ -576,14 +577,14 @@ def the_material_name_is_not_an_ifc_material(name):
 @then(parsers.parse('the material "{name}" is an IFC style'))
 def the_material_name_is_an_ifc_style(name):
     obj = the_material_name_exists(name)
-    ifc_definition_id = obj.BIMMaterialProperties.ifc_style_id
+    ifc_definition_id = obj.BIMStyleProperties.ifc_definition_id
     assert ifc_definition_id != 0, f"The material {obj} has a style ID of {ifc_definition_id}"
 
 
 @then(parsers.parse('the material "{name}" is not an IFC style'))
 def the_material_name_is_not_an_ifc_style(name):
     obj = the_material_name_exists(name)
-    ifc_definition_id = obj.BIMMaterialProperties.ifc_style_id
+    ifc_definition_id = obj.BIMStyleProperties.ifc_definition_id
     assert ifc_definition_id == 0, f"The material {obj} has a style ID of {ifc_definition_id}"
 
 
@@ -669,6 +670,16 @@ def prop_is_roughly_value(prop, value):
         print(f"bpy.context.{prop}")
         actual_value = round(eval(f"bpy.context.{prop}"), 5)
         assert False, f"Value is {actual_value}"
+
+
+@then(parsers.parse('the object "{name}" has a cartesian point offset of "{offset}"'))
+def the_object_name_has_a_cartesian_point_offset_of_offset(name, offset):
+    offset = replace_variables(offset)
+    obj = the_object_name_exists(name)
+    assert obj.BIMObjectProperties.blender_offset_type == "CARTESIAN_POINT" 
+    obj_offset = np.array(tuple(map(float, obj.BIMObjectProperties.cartesian_point_offset.split(","))))
+    offset = np.array(tuple(map(float, offset.split(","))))
+    assert np.allclose(obj_offset, offset)
 
 
 @then(parsers.parse('the object "{name}" has the material "{material}"'))
@@ -762,6 +773,19 @@ def the_object_name_is_at_location(name, location):
     assert (
         obj_location - Vector([float(co) for co in location.split(",")])
     ).length < 0.1, f"Object is at {obj_location}"
+
+
+@then(parsers.parse('the object "{name}" has a vertex at "{location}"'))
+def the_object_name_has_a_vertex_at_location(name, location):
+    obj = the_object_name_exists(name)
+    is_pass = False
+    target = Vector([float(co) for co in location.split(",")])
+    verts = []
+    for v in obj.data.vertices:
+        verts.append((obj.matrix_world @ v.co))
+        if (verts[-1] - target).length < 0.001:
+            is_pass = True
+    assert is_pass, f"No verts found at {location}: {verts}"
 
 
 @then(parsers.parse('the object "{name}" has no scale'))

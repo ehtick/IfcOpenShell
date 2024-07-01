@@ -18,14 +18,12 @@
 
 import os
 import bpy
-import ifcopenshell
-import ifcopenshell.util.unit
 import blenderbim.tool as tool
-import blenderbim.bim.module.type.prop as type_prop
+import blenderbim.core.model as core
+from blenderbim.bim.module.model.wall import DumbWallJoiner
 from blenderbim.bim.helper import prop_with_search
 from bpy.types import WorkSpaceTool
 from blenderbim.bim.module.model.data import AuthoringData
-from blenderbim.bim.module.drawing.data import DecoratorData
 from blenderbim.bim.module.system.data import PortData
 from blenderbim.bim.module.model.prop import get_ifc_class
 
@@ -350,7 +348,7 @@ class BimToolUI:
             add_layout_hotkey_operator(cls.layout, "Split", "S_K", bpy.ops.bim.split_wall.__doc__)
             add_layout_hotkey_operator(cls.layout, "Rotate 90", "S_R", bpy.ops.bim.rotate_90.__doc__)
             add_layout_hotkey_operator(cls.layout, "Regen", "S_G", bpy.ops.bim.recalculate_wall.__doc__)
-            row.operator("bim.join_wall", icon="X", text="").join_type = ""
+            row.operator("bim.unjoin_walls", icon="X", text="")
 
         elif AuthoringData.data["active_material_usage"] == "LAYER3":
             if len(context.selected_objects) == 1:
@@ -407,12 +405,8 @@ class BimToolUI:
             # NOTE: should be above "active_representation_type" = "SweptSolid" check
             # because it could be a SweptSolid too
             row = cls.layout.row(align=True)
-            row.label(text="", icon=f"EVENT_TAB")
+            row.label(text="", icon="EVENT_TAB")
             row.operator("bim.enable_editing_railing_path", text="Edit Railing Path")
-
-        elif AuthoringData.data["active_representation_type"] == "SweptSolid":
-            if not tool.Model.is_parametric_window_active() and not tool.Model.is_parametric_door_active():
-                add_layout_hotkey_operator(cls.layout, "Edit Profile", "S_E", "")
 
         elif AuthoringData.data["active_class"] in (
             "IfcWindow",
@@ -430,12 +424,16 @@ class BimToolUI:
             add_layout_hotkey_operator(cls.layout, "Regen", "S_G", bpy.ops.bim.recalculate_fill.__doc__)
             add_layout_hotkey_operator(cls.layout, "Flip", "S_F", "")
 
+        elif AuthoringData.data["active_representation_type"] == "SweptSolid":
+            if not tool.Model.is_parametric_window_active() and not tool.Model.is_parametric_door_active():
+                add_layout_hotkey_operator(cls.layout, "Edit Profile", "S_E", "")
+
         elif AuthoringData.data["active_class"] in ("IfcSpace",):
             add_layout_hotkey_operator(cls.layout, "Regen", "S_G", bpy.ops.bim.generate_space.__doc__)
 
         elif tool.Model.is_parametric_roof_active() and not context.active_object.BIMRoofProperties.is_editing_path:
             row = cls.layout.row(align=True)
-            row.label(text="", icon=f"EVENT_TAB")
+            row.label(text="", icon="EVENT_TAB")
             row.operator("bim.enable_editing_roof_path", text="Edit Roof Path")
 
         if context.region.type != "TOOL_HEADER" and PortData.data["total_ports"] > 0:
@@ -680,7 +678,14 @@ class Hotkey(bpy.types.Operator, tool.Ifc.Operator):
                     bpy.ops.bim.enable_editing_extrusion_profile()
             elif self.active_material_usage == "LAYER2":
                 # Extend LAYER2 to cursor
-                bpy.ops.bim.join_wall(join_type="T")
+                core.extend_walls(
+                    tool.Ifc,
+                    tool.Blender,
+                    tool.Geometry,
+                    DumbWallJoiner(),
+                    tool.Model,
+                    bpy.context.scene.cursor.location,
+                )
             elif self.active_material_usage == "PROFILE":
                 # Extend PROFILE to cursor
                 bpy.ops.bim.extend_profile(join_type="T")
@@ -698,13 +703,19 @@ class Hotkey(bpy.types.Operator, tool.Ifc.Operator):
             # Extend LAYER2s to LAYER3
             [o.select_set(False) for o in selected_usages.get("PROFILE", [])]
             [o.select_set(False) for o in selected_usages.get("LAYER3", []) if o != bpy.context.active_object]
-            bpy.ops.bim.join_wall(join_type="T")
+            try:
+                core.join_walls_TZ(tool.Ifc, tool.Blender, tool.Geometry, DumbWallJoiner(), tool.Model)
+            except core.RequireAtLeastTwoLayeredElements as e:
+                self.report({"ERROR"}, str(e))
 
         elif self.active_material_usage == "LAYER2":
             # Extend LAYER2s to LAYER2
             [o.select_set(False) for o in selected_usages.get("LAYER3", [])]
             [o.select_set(False) for o in selected_usages.get("PROFILE", [])]
-            bpy.ops.bim.join_wall(join_type="T")
+            try:
+                core.join_walls_TZ(tool.Ifc, tool.Blender, tool.Geometry, DumbWallJoiner(), tool.Model)
+            except core.RequireAtLeastTwoLayeredElements as e:
+                self.report({"ERROR"}, str(e))
 
         elif self.active_material_usage == "PROFILE":
             # Extend PROFILEs to PROFILE
@@ -721,7 +732,6 @@ class Hotkey(bpy.types.Operator, tool.Ifc.Operator):
             bpy.ops.bim.flip_fill()
         elif self.active_material_usage == "PROFILE":
             bpy.ops.bim.flip_object(flip_local_axes="XZ")
-
 
     def hotkey_S_G(self):
         obj = bpy.context.active_object
@@ -755,7 +765,7 @@ class Hotkey(bpy.types.Operator, tool.Ifc.Operator):
         else:
             if len(bpy.context.selected_objects) == 1:
                 self.report(
-                    {"INFO"},
+                    {"ERROR"},
                     "At least two objects must be selected: an object to be mirrored, and a mirror axis as the active object.",
                 )
             else:
@@ -781,7 +791,10 @@ class Hotkey(bpy.types.Operator, tool.Ifc.Operator):
         if not bpy.context.selected_objects:
             return
         if self.active_material_usage == "LAYER2":
-            bpy.ops.bim.join_wall(join_type="L")
+            try:
+                core.join_walls_LV(tool.Ifc, tool.Blender, tool.Geometry, DumbWallJoiner(), tool.Model, join_type="L")
+            except core.RequireTwoWallsError as e:
+                self.report({"ERROR"}, str(e))
         elif self.active_material_usage == "PROFILE":
             bpy.ops.bim.extend_profile(join_type="L")
 
@@ -806,12 +819,14 @@ class Hotkey(bpy.types.Operator, tool.Ifc.Operator):
         if not bpy.context.selected_objects:
             return
         if self.active_material_usage == "LAYER2":
-            bpy.ops.bim.join_wall(join_type="V")
+            try:
+                core.join_walls_LV(tool.Ifc, tool.Blender, tool.Geometry, DumbWallJoiner(), tool.Model, join_type="V")
+            except core.RequireTwoWallsError as e:
+                self.report({"ERROR"}, str(e))
         elif self.active_class in ("IfcDuctSegment", "IfcPipeSegment", "IfcCableCarrierSegment", "IfcCableSegment"):
             bpy.ops.bim.fit_flow_segments()
         elif self.active_material_usage == "PROFILE":
             bpy.ops.bim.extend_profile(join_type="V")
-
 
     def hotkey_S_B(self):
         bpy.ops.bim.add_boundary()
@@ -820,7 +835,6 @@ class Hotkey(bpy.types.Operator, tool.Ifc.Operator):
         if len(bpy.context.selected_objects) == 2:
             bpy.ops.bim.add_opening()
         else:
-            unit_scale = ifcopenshell.util.unit.calculate_unit_scale(tool.Ifc.get())
             bpy.ops.bim.add_potential_opening(x=self.x, y=self.y, z=self.z)
             self.props.x = self.x
             self.props.y = self.y

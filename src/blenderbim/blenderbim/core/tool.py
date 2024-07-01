@@ -77,6 +77,7 @@ class Blender:
     def apply_bmesh(cls, mesh, bm, obj=None): pass
     def bmesh_join(cls, bm_a, bm_b, callback=None): pass
     def create_ifc_object(cls, ifc_class: str, name: Optional[str] = None, data=None): pass
+    def get_active_object(cls): pass
     def get_bmesh_for_mesh(cls, mesh, clean=False): pass
     def get_default_selection_keypmap(cls): pass
     def get_name(cls, ifc_class, name): pass
@@ -169,7 +170,6 @@ class Clash:
 @interface
 class Collector:
     def assign(cls, obj): pass
-    def sync(cls, obj): pass
 
 
 @interface
@@ -535,8 +535,9 @@ class Model:
     def import_profile(cls, profile, obj=None, position=None): pass
     def import_curve(cls, obj, position, curve): pass
     def import_rectangle(cls, obj, position, profile): pass
-    def load_openings(cls, element, openings): pass
+    def load_openings(cls, openings): pass
     def clear_scene_openings(cls): pass
+    def get_usage_type(cls, element): pass
     def get_material_layer_parameters(cls, element): pass
     def get_manual_booleans(cls, element): pass
     def get_wall_axis(cls, obj, layers=None): pass
@@ -929,14 +930,16 @@ class Structural:
 @interface
 class Style:
     def can_support_rendering_style(cls, obj): pass
-    def disable_editing(cls, obj): pass
+    def delete_object(cls, obj): pass
+    def disable_editing(cls): pass
     def disable_editing_styles(cls): pass
-    def enable_editing(cls, obj): pass
+    def enable_editing(cls, style): pass
     def enable_editing_styles(cls): pass
-    def export_surface_attributes(cls, obj): pass
+    def export_surface_attributes(cls): pass
     def get_active_style_type(cls): pass
     def get_context(cls, obj): pass
     def get_elements_by_style(cls, style): pass
+    def get_currently_edited_material(cls): pass
     def get_name(cls, obj): pass
     def get_style(cls, obj): pass
     def get_style_elements(cls, blender_material): pass
@@ -949,8 +952,9 @@ class Style:
     def get_surface_texture_style(cls, obj): pass
     def get_uv_maps(cls, representation): pass
     def import_presentation_styles(cls, style_type): pass
-    def import_surface_attributes(cls, style, obj): pass
+    def import_surface_attributes(cls, style): pass
     def is_editing_styles(cls): pass
+    def reload_material_from_ifc(cls, obj): pass
 
 
 @interface

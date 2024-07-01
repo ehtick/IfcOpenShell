@@ -17,7 +17,8 @@
 # along with IfcOpenShell.  If not, see <http://www.gnu.org/licenses/>.
 
 import test.bootstrap
-import ifcopenshell.api
+import ifcopenshell.api.unit
+import ifcopenshell.api.root
 import ifcopenshell.util.unit as subject
 from math import pi
 
@@ -34,15 +35,15 @@ class TestConvert(test.bootstrap.IFC4):
 
 class TestCalculateUnitScale(test.bootstrap.IFC4):
     def test_prefix_and_conversion_based_units_are_considered(self):
-        ifcopenshell.api.run("root.create_entity", self.file, ifc_class="IfcProject")
-        length = ifcopenshell.api.run("unit.add_conversion_based_unit", self.file, name="foot")
+        ifcopenshell.api.root.create_entity(self.file, ifc_class="IfcProject")
+        length = ifcopenshell.api.unit.add_conversion_based_unit(self.file, name="foot")
         length.ConversionFactor.UnitComponent.Prefix = "MILLI"
-        ifcopenshell.api.run("unit.assign_unit", self.file, units=[length])
+        ifcopenshell.api.unit.assign_unit(self.file, units=[length])
         assert subject.calculate_unit_scale(self.file) == 0.3048 * 0.001
 
-        angle = ifcopenshell.api.run("unit.add_conversion_based_unit", self.file, name="degree")
+        angle = ifcopenshell.api.unit.add_conversion_based_unit(self.file, name="degree")
         angle.ConversionFactor.UnitComponent.Prefix = "MILLI"
-        ifcopenshell.api.run("unit.assign_unit", self.file, units=[angle])
+        ifcopenshell.api.unit.assign_unit(self.file, units=[angle])
         assert subject.calculate_unit_scale(self.file, "PLANEANGLEUNIT") == pi / 180 * 0.001
 
 
@@ -81,3 +82,13 @@ class TestFormatLength(test.bootstrap.IFC4):
         assert (
             subject.format_length(25.23, 4, unit_system="imperial", input_unit="inch", output_unit="inch") == '25 1/4"'
         )
+
+
+class TestIsAttrType(test.bootstrap.IFC4):
+    def test_run(self):
+        schema = ifcopenshell.schema_by_name("IFC4")
+        declaration = schema.declaration_by_name("IfcPropertySingleValue")
+        nominal_value = declaration.attribute_by_index(2).type_of_attribute()
+        assert subject.is_attr_type(nominal_value, "IfcValue")
+        assert subject.is_attr_type(nominal_value, "IfcLengthMeasure")
+        assert not subject.is_attr_type(nominal_value, "IfcLengthMeasure", include_select_types=False)

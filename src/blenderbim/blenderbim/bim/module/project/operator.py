@@ -24,9 +24,11 @@ import logging
 import tempfile
 import traceback
 import subprocess
+import datetime
 import numpy as np
 import ifcopenshell
 import ifcopenshell.api
+import ifcopenshell.util.file
 import ifcopenshell.util.selector
 import ifcopenshell.util.geolocation
 import ifcopenshell.util.representation
@@ -655,6 +657,51 @@ class LoadProject(bpy.types.Operator, IFCFileSelector):
     is_advanced: bpy.props.BoolProperty(name="Enable Advanced Mode", default=False)
     use_relative_path: bpy.props.BoolProperty(name="Use Relative Path", default=False)
     should_start_fresh_session: bpy.props.BoolProperty(name="Should Start Fresh Session", default=True)
+    use_detailed_tooltip: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
+
+    @classmethod
+    def description(cls, context, properties):
+        tooltip = cls.bl_description
+        if not properties.use_detailed_tooltip:
+            return tooltip
+
+        filepath = properties.filepath
+        if not filepath:
+            return tooltip
+        filepath = Path(filepath)
+        tooltip += f".\n"
+        if not filepath.exists():
+            tooltip += "\nFile does not exist"
+            return tooltip
+
+        def get_modified_date(st_mtime: float) -> str:
+            mod_time = datetime.datetime.fromtimestamp(st_mtime)
+
+            today = datetime.date.today()
+            if mod_time.date() == today:
+                return f"Today {mod_time.strftime('%I:%M %p')}"
+            elif mod_time.date() == today - datetime.timedelta(days=1):
+                return f"Yesterday {mod_time.strftime('%I:%M %p')}"
+            return mod_time.strftime("%d %b %Y")
+
+        def get_file_size(size_bytes: float) -> str:
+            if size_bytes < 1024 * 1024:  # Less than 1 MiB
+                size = size_bytes / 1024
+                return f"{size:.0f} KiB"
+            else:
+                size = size_bytes / (1024 * 1024)
+                return f"{size:.1f} MiB"
+
+        extractor = ifcopenshell.util.file.IfcHeaderExtractor(str(filepath))
+        header_metadata = extractor.extract()
+        if schema := header_metadata.get("schema_name"):
+            tooltip += f"\nSchema: {schema}"
+
+        file_stat = filepath.stat()
+        tooltip += f"\nModified: {get_modified_date(file_stat.st_mtime)}"
+        tooltip += f"\nSize: {get_file_size(file_stat.st_size)}"
+
+        return tooltip
 
     def execute(self, context):
         @persistent
@@ -683,10 +730,13 @@ class LoadProject(bpy.types.Operator, IFCFileSelector):
                 for obj in bpy.data.objects:
                     bpy.data.objects.remove(obj)
 
-            context.scene.BIMProperties.ifc_file = self.get_filepath()
+            filepath = Path(self.get_filepath())
+            context.scene.BIMProperties.ifc_file = str(filepath)
             context.scene.BIMProjectProperties.is_loading = True
             context.scene.BIMProjectProperties.total_elements = len(tool.Ifc.get().by_type("IfcElement"))
             tool.Blender.register_toolbar()
+            tool.Project.add_recent_ifc_project(filepath.absolute())
+
             if not self.is_advanced:
                 bpy.ops.bim.load_project_elements()
         except:
@@ -703,16 +753,13 @@ class LoadProject(bpy.types.Operator, IFCFileSelector):
         IFCFileSelector.draw(self, context)
 
 
-class UnloadProject(bpy.types.Operator):
-    bl_idname = "bim.unload_project"
-    bl_label = "Unload Project"
-    bl_options = {"REGISTER", "UNDO"}
-    bl_description = "Unload the IFC project"
+class ClearRecentIFCProjects(bpy.types.Operator):
+    bl_idname = "bim.clear_recent_ifc_projects"
+    bl_label = "Clear Recent IFC Projects List"
+    bl_options = {"REGISTER"}
 
     def execute(self, context):
-        IfcStore.purge()
-        context.scene.BIMProperties.ifc_file = ""
-        context.scene.BIMProjectProperties.is_loading = False
+        tool.Project.clear_recent_ifc_projects()
         return {"FINISHED"}
 
 

@@ -28,6 +28,66 @@ Scenario: Create project - IFC2X3
     And the object "IfcBuilding/My Building" is in the collection "IfcBuilding/My Building"
     And the object "IfcBuildingStorey/My Storey" is in the collection "IfcBuildingStorey/My Storey"
 
+Scenario: New project - metric (m) preset
+    Given an empty Blender session
+    When I press "bim.new_project(preset='metric_m')"
+    Then an IFC file exists
+    And the object "IfcProject/My Project" is an "IfcProject"
+    And the object "IfcSite/My Site" is an "IfcSite"
+    And the object "IfcBuilding/My Building" is an "IfcBuilding"
+    And the object "IfcBuildingStorey/My Storey" is an "IfcBuildingStorey"
+    And the object "IfcProject/My Project" is in the collection "IfcProject/My Project"
+    And the object "IfcSite/My Site" is in the collection "IfcSite/My Site"
+    And the object "IfcBuilding/My Building" is in the collection "IfcBuilding/My Building"
+    And the object "IfcBuildingStorey/My Storey" is in the collection "IfcBuildingStorey/My Storey"
+
+Scenario: New project - metric (mm) preset
+    Given an empty Blender session
+    When I press "bim.new_project(preset='metric_mm')"
+    Then an IFC file exists
+    And the object "IfcProject/My Project" is an "IfcProject"
+    And the object "IfcSite/My Site" is an "IfcSite"
+    And the object "IfcBuilding/My Building" is an "IfcBuilding"
+    And the object "IfcBuildingStorey/My Storey" is an "IfcBuildingStorey"
+    And the object "IfcProject/My Project" is in the collection "IfcProject/My Project"
+    And the object "IfcSite/My Site" is in the collection "IfcSite/My Site"
+    And the object "IfcBuilding/My Building" is in the collection "IfcBuilding/My Building"
+    And the object "IfcBuildingStorey/My Storey" is in the collection "IfcBuildingStorey/My Storey"
+
+Scenario: New project - imperial (ft) preset
+    Given an empty Blender session
+    When I press "bim.new_project(preset='imperial_ft')"
+    Then an IFC file exists
+    And the object "IfcProject/My Project" is an "IfcProject"
+    And the object "IfcSite/My Site" is an "IfcSite"
+    And the object "IfcBuilding/My Building" is an "IfcBuilding"
+    And the object "IfcBuildingStorey/My Storey" is an "IfcBuildingStorey"
+    And the object "IfcProject/My Project" is in the collection "IfcProject/My Project"
+    And the object "IfcSite/My Site" is in the collection "IfcSite/My Site"
+    And the object "IfcBuilding/My Building" is in the collection "IfcBuilding/My Building"
+    And the object "IfcBuildingStorey/My Storey" is in the collection "IfcBuildingStorey/My Storey"
+
+Scenario: New project - demo preset
+    Given an empty Blender session
+    When I press "bim.new_project(preset='demo')"
+    Then an IFC file exists
+    And the object "IfcProject/My Project" is an "IfcProject"
+    And the object "IfcSite/My Site" is an "IfcSite"
+    And the object "IfcBuilding/My Building" is an "IfcBuilding"
+    And the object "IfcBuildingStorey/My Storey" is an "IfcBuildingStorey"
+    And the object "IfcProject/My Project" is in the collection "IfcProject/My Project"
+    And the object "IfcSite/My Site" is in the collection "IfcSite/My Site"
+    And the object "IfcBuilding/My Building" is in the collection "IfcBuilding/My Building"
+    And the object "IfcBuildingStorey/My Storey" is in the collection "IfcBuildingStorey/My Storey"
+    And the object "IfcBeamType/B1" is an "IfcBeamType"
+    And the object "IfcWallType/WAL50" is an "IfcWallType"
+
+Scenario: New project - wizard
+    Given an empty Blender session
+    When I press "bim.new_project(preset='wizard')"
+    Then an IFC file does not exist
+    And the object "IfcProject/My Project" does not exist
+
 Scenario: Append library element
     Given an empty IFC project
     When I press "bim.select_library_file(filepath='{cwd}/test/files/basic.ifc')"
@@ -35,7 +95,7 @@ Scenario: Append library element
     And I press "bim.change_library_element(element_name='IfcSlabType')"
     And I press "bim.append_library_element(definition=242, prop_index=0)"
     Then the object "IfcSlabType/Slab" is an "IfcSlabType"
-    And the object "IfcSlabType/Slab" is in the collection "Types"
+    And the object "IfcSlabType/Slab" is in the collection "IfcTypeProduct"
 
 Scenario: Append library element - append two elements sharing a material
     Given an empty IFC project
@@ -47,9 +107,9 @@ Scenario: Append library element - append two elements sharing a material
     And I press "bim.change_library_element(element_name='IfcWallType')"
     And I press "bim.append_library_element(definition=291, prop_index=0)"
     Then the object "IfcSlabType/Slab" is an "IfcSlabType"
-    And the object "IfcSlabType/Slab" is in the collection "Types"
+    And the object "IfcSlabType/Slab" is in the collection "IfcTypeProduct"
     And the object "IfcWallType/Wall" is an "IfcWallType"
-    And the object "IfcWallType/Wall" is in the collection "Types"
+    And the object "IfcWallType/Wall" is in the collection "IfcTypeProduct"
     And the object "IfcSlabType/Slab" has the material "SurfaceStyle"
     And the object "IfcWallType/Wall" has the material "SurfaceStyle"
 
@@ -70,8 +130,8 @@ Scenario: Load project
     And the object "IfcBuilding/My Building" is in the collection "IfcBuilding/My Building"
     And the object "IfcBuildingStorey/Ground Floor" is in the collection "IfcBuildingStorey/Ground Floor"
     And the object "IfcBuildingStorey/Level 1" is in the collection "IfcBuildingStorey/Level 1"
-    And the object "IfcElementAssembly/Empty" is in the collection "IfcElementAssembly/Empty"
-    And the object "IfcBeam/Beam" is in the collection "IfcElementAssembly/Empty"
+    And the object "IfcElementAssembly/Empty" is in the collection "IfcBuildingStorey/Level 1"
+    And the object "IfcBeam/Beam" is in the collection "IfcBuildingStorey/Level 1"
     And the object "IfcSlab/Slab" is in the collection "IfcBuildingStorey/Ground Floor"
     And the object "IfcWall/Wall" is in the collection "IfcBuildingStorey/Level 1"
     And "scene.BIMProjectProperties.is_loading" is "False"
@@ -91,8 +151,7 @@ Scenario: Load project - advanced mode
 Scenario: Load project elements - load all project elements
     Given an empty Blender session
     And I press "bim.load_project(filepath='{cwd}/test/files/basic.ifc', is_advanced=True)"
-    When I set "scene.BIMProjectProperties.collection_mode" to "DECOMPOSITION"
-    And I set "scene.BIMProjectProperties.filter_mode" to "NONE"
+    When I set "scene.BIMProjectProperties.filter_mode" to "NONE"
     And I press "bim.load_project_elements"
     Then the object "IfcProject/My Project" is an "IfcProject"
     And the object "IfcSite/My Site" is an "IfcSite"
@@ -107,8 +166,8 @@ Scenario: Load project elements - load all project elements
     And the object "IfcBuilding/My Building" is in the collection "IfcBuilding/My Building"
     And the object "IfcBuildingStorey/Ground Floor" is in the collection "IfcBuildingStorey/Ground Floor"
     And the object "IfcBuildingStorey/Level 1" is in the collection "IfcBuildingStorey/Level 1"
-    And the object "IfcElementAssembly/Empty" is in the collection "IfcElementAssembly/Empty"
-    And the object "IfcBeam/Beam" is in the collection "IfcElementAssembly/Empty"
+    And the object "IfcElementAssembly/Empty" is in the collection "IfcBuildingStorey/Level 1"
+    And the object "IfcBeam/Beam" is in the collection "IfcBuildingStorey/Level 1"
     And the object "IfcSlab/Slab" is in the collection "IfcBuildingStorey/Ground Floor"
     And the object "IfcWall/Wall" is in the collection "IfcBuildingStorey/Level 1"
     And the object "IfcSlab/Slab" has data which is an IFC representation
@@ -121,8 +180,7 @@ Scenario: Load project elements - load all project elements
 Scenario: Load project elements - load objects filtered by decomposition
     Given an empty Blender session
     And I press "bim.load_project(filepath='{cwd}/test/files/basic.ifc', is_advanced=True)"
-    When I set "scene.BIMProjectProperties.collection_mode" to "DECOMPOSITION"
-    And I set "scene.BIMProjectProperties.filter_mode" to "DECOMPOSITION"
+    When I set "scene.BIMProjectProperties.filter_mode" to "DECOMPOSITION"
     And I set "scene.BIMProjectProperties.should_filter_spatial_elements" to "True"
     Then "scene.BIMProjectProperties.filter_categories['IfcSite/My Site'].total_elements" is "0"
     Then "scene.BIMProjectProperties.filter_categories['IfcBuilding/My Building'].total_elements" is "0"
@@ -141,16 +199,15 @@ Scenario: Load project elements - load objects filtered by decomposition
     And the object "IfcBuilding/My Building" is in the collection "IfcBuilding/My Building"
     And the object "IfcBuildingStorey/Level 1" is in the collection "IfcBuildingStorey/Level 1"
     And the object "IfcWall/Wall" is in the collection "IfcBuildingStorey/Level 1"
-    And the object "IfcElementAssembly/Empty" is in the collection "IfcElementAssembly/Empty"
-    And the object "IfcBeam/Beam" is in the collection "IfcElementAssembly/Empty"
+    And the object "IfcElementAssembly/Empty" is in the collection "IfcBuildingStorey/Level 1"
+    And the object "IfcBeam/Beam" is in the collection "IfcBuildingStorey/Level 1"
     And the object "IfcBuildingStorey/Ground Floor" does not exist
     And the object "IfcSlab/Slab" does not exist
 
 Scenario: Load project elements - load objects filtered by IFC class
     Given an empty Blender session
     And I press "bim.load_project(filepath='{cwd}/test/files/basic.ifc', is_advanced=True)"
-    When I set "scene.BIMProjectProperties.collection_mode" to "DECOMPOSITION"
-    And I set "scene.BIMProjectProperties.filter_mode" to "IFC_CLASS"
+    When I set "scene.BIMProjectProperties.filter_mode" to "IFC_CLASS"
     And I set "scene.BIMProjectProperties.should_filter_spatial_elements" to "True"
     Then "scene.BIMProjectProperties.filter_categories['IfcWall'].total_elements" is "1"
     And "scene.BIMProjectProperties.filter_categories['IfcSlab'].total_elements" is "1"
@@ -173,8 +230,7 @@ Scenario: Load project elements - load objects filtered by IFC class
 Scenario: Load project elements - load objects filtered by whitelist
     Given an empty Blender session
     And I press "bim.load_project(filepath='{cwd}/test/files/basic.ifc', is_advanced=True)"
-    When I set "scene.BIMProjectProperties.collection_mode" to "DECOMPOSITION"
-    And I set "scene.BIMProjectProperties.filter_mode" to "WHITELIST"
+    When I set "scene.BIMProjectProperties.filter_mode" to "WHITELIST"
     And I set "scene.BIMProjectProperties.filter_query" to "IfcSlab"
     And I set "scene.BIMProjectProperties.should_filter_spatial_elements" to "True"
     And I press "bim.load_project_elements"
@@ -193,8 +249,7 @@ Scenario: Load project elements - load objects filtered by whitelist
 Scenario: Load project elements - load objects filtered by blacklist
     Given an empty Blender session
     And I press "bim.load_project(filepath='{cwd}/test/files/basic.ifc', is_advanced=True)"
-    When I set "scene.BIMProjectProperties.collection_mode" to "DECOMPOSITION"
-    And I set "scene.BIMProjectProperties.filter_mode" to "BLACKLIST"
+    When I set "scene.BIMProjectProperties.filter_mode" to "BLACKLIST"
     And I set "scene.BIMProjectProperties.filter_query" to "IfcSlab"
     And I set "scene.BIMProjectProperties.should_filter_spatial_elements" to "True"
     And I press "bim.load_project_elements"
@@ -209,16 +264,15 @@ Scenario: Load project elements - load objects filtered by blacklist
     And the object "IfcBuilding/My Building" is in the collection "IfcBuilding/My Building"
     And the object "IfcBuildingStorey/Level 1" is in the collection "IfcBuildingStorey/Level 1"
     And the object "IfcWall/Wall" is in the collection "IfcBuildingStorey/Level 1"
-    And the object "IfcElementAssembly/Empty" is in the collection "IfcElementAssembly/Empty"
-    And the object "IfcBeam/Beam" is in the collection "IfcElementAssembly/Empty"
+    And the object "IfcElementAssembly/Empty" is in the collection "IfcBuildingStorey/Level 1"
+    And the object "IfcBeam/Beam" is in the collection "IfcBuildingStorey/Level 1"
     And the object "IfcBuildingStorey/Ground Floor" does not exist
     And the object "IfcSlab/Slab" does not exist
 
 Scenario: Load project elements - load no objects due to filter
     Given an empty Blender session
     And I press "bim.load_project(filepath='{cwd}/test/files/basic.ifc', is_advanced=True)"
-    When I set "scene.BIMProjectProperties.collection_mode" to "DECOMPOSITION"
-    And I set "scene.BIMProjectProperties.filter_mode" to "IFC_CLASS"
+    When I set "scene.BIMProjectProperties.filter_mode" to "IFC_CLASS"
     And I set "scene.BIMProjectProperties.should_filter_spatial_elements" to "True"
     And I press "bim.load_project_elements"
     Then the object "IfcProject/My Project" is an "IfcProject"
@@ -229,70 +283,25 @@ Scenario: Load project elements - load no objects due to filter
     And the object "IfcSlab/Slab" does not exist
     And the object "IfcWall/Wall" does not exist
 
-Scenario: Load project elements - load with the decomposition collection mode
-    Given an empty Blender session
-    And I press "bim.load_project(filepath='{cwd}/test/files/decomposition.ifc', is_advanced=True)"
-    When I set "scene.BIMProjectProperties.collection_mode" to "DECOMPOSITION"
-    And I set "scene.BIMProjectProperties.filter_mode" to "NONE"
-    And I press "bim.load_project_elements"
-    Then the object "IfcProject/My Project" is an "IfcProject"
-    And the object "IfcSite/My Site" is an "IfcSite"
-    And the object "IfcBuilding/My Building" is an "IfcBuilding"
-    And the object "IfcBuildingStorey/My Storey" is an "IfcBuildingStorey"
-    And the object "IfcSpace/Space" is an "IfcSpace"
-    And the object "IfcElementAssembly/Assembly" is an "IfcElementAssembly"
-    And the object "IfcBeam/Beam" is an "IfcBeam"
-    And the object "IfcSite/My Site" is in the collection "IfcSite/My Site"
-    And the object "IfcBuilding/My Building" is in the collection "IfcBuilding/My Building"
-    And the object "IfcBuildingStorey/My Storey" is in the collection "IfcBuildingStorey/My Storey"
-    And the object "IfcSpace/Space" is in the collection "IfcSpace/Space"
-    And the object "IfcElementAssembly/Assembly" is in the collection "IfcElementAssembly/Assembly"
-    And the object "IfcBeam/Beam" is in the collection "IfcElementAssembly/Assembly"
-    And the collection "IfcSite/My Site" is in the collection "IfcProject/My Project"
-    And the collection "IfcBuilding/My Building" is in the collection "IfcSite/My Site"
-    And the collection "IfcBuildingStorey/My Storey" is in the collection "IfcBuilding/My Building"
-    And the collection "IfcSpace/Space" is in the collection "IfcBuildingStorey/My Storey"
-    And the collection "IfcElementAssembly/Assembly" is in the collection "IfcSpace/Space"
-    And "scene.BIMProjectProperties.is_loading" is "False"
-
-Scenario: Load project elements - load with the spatial decomposition collection mode
-    Given an empty Blender session
-    And I press "bim.load_project(filepath='{cwd}/test/files/decomposition.ifc', is_advanced=True)"
-    When I set "scene.BIMProjectProperties.collection_mode" to "SPATIAL_DECOMPOSITION"
-    And I set "scene.BIMProjectProperties.filter_mode" to "NONE"
-    And I press "bim.load_project_elements"
-    Then the object "IfcProject/My Project" is an "IfcProject"
-    And the object "IfcSite/My Site" is an "IfcSite"
-    And the object "IfcBuilding/My Building" is an "IfcBuilding"
-    And the object "IfcBuildingStorey/My Storey" is an "IfcBuildingStorey"
-    And the object "IfcSpace/Space" is an "IfcSpace"
-    And the object "IfcElementAssembly/Assembly" is an "IfcElementAssembly"
-    And the object "IfcBeam/Beam" is an "IfcBeam"
-    And the object "IfcSite/My Site" is in the collection "IfcSite/My Site"
-    And the object "IfcBuilding/My Building" is in the collection "IfcBuilding/My Building"
-    And the object "IfcBuildingStorey/My Storey" is in the collection "IfcBuildingStorey/My Storey"
-    And the object "IfcSpace/Space" is in the collection "IfcSpace/Space"
-    And the object "IfcElementAssembly/Assembly" is in the collection "IfcSpace/Space"
-    And the object "IfcBeam/Beam" is in the collection "IfcSpace/Space"
-    And the collection "IfcSite/My Site" is in the collection "IfcProject/My Project"
-    And the collection "IfcBuilding/My Building" is in the collection "IfcSite/My Site"
-    And the collection "IfcBuildingStorey/My Storey" is in the collection "IfcBuilding/My Building"
-    And the collection "IfcSpace/Space" is in the collection "IfcBuildingStorey/My Storey"
-    And "scene.BIMProjectProperties.is_loading" is "False"
-
 Scenario: Load project elements - manual offset of object placements
     Given an empty Blender session
     And I press "bim.load_project(filepath='{cwd}/test/files/manual-geolocation.ifc', is_advanced=True)"
-    When I set "scene.BIMProjectProperties.false_origin" to "268388500, 5774506000, 21900"
+    When I set "scene.BIMProjectProperties.false_origin_mode" to "MANUAL"
+    And I set "scene.BIMProjectProperties.false_origin" to "268388500, 5774506000, 21900"
     And I press "bim.load_project_elements"
     Then the object "IfcPlate/1780 x 270 PRECAST WALL" is at "0,0,0"
 
 Scenario: Load project elements - manual offset of cartesian points
     Given an empty Blender session
     And I press "bim.load_project(filepath='{cwd}/test/files/manual-geolocation-coords.ifc', is_advanced=True)"
-    When I set "scene.BIMProjectProperties.false_origin" to "1990711,5971553,22700"
+    When I set "scene.BIMProjectProperties.false_origin_mode" to "MANUAL"
+    And I set "scene.BIMProjectProperties.false_origin" to "1990711,5971553,22700"
     And I press "bim.load_project_elements"
-    Then the object "IfcBuildingElementProxy/NAME" is at "0,0,0"
+    Then the object "IfcBuildingElementProxy/NAME" has a vertex at "0,0,0"
+    And the object "IfcBuildingElementProxy/NAME" has a vertex at "-1,0,0"
+    And the object "IfcBuildingElementProxy/NAME" has a vertex at "0,.5,0"
+    And the object "IfcBuildingElementProxy/NAME" has a vertex at "-1,.5,0"
+    And the object "IfcBuildingElementProxy/NAME" has a vertex at "-1,.5,2.2"
 
 Scenario: Load project elements - auto offset of object placements
     Given an empty Blender session
@@ -304,12 +313,357 @@ Scenario: Load project elements - auto offset of cartesian points
     When I press "bim.load_project(filepath='{cwd}/test/files/manual-geolocation-coords.ifc')"
     Then the object "IfcBuildingElementProxy/NAME" is at "0,0,0"
 
-Scenario: Unload project
+Scenario: Load project elements - all georeferencing coordinate situations - disabled false origin mode
     Given an empty Blender session
-    When I press "bim.load_project(filepath='{cwd}/test/files/basic.ifc', is_advanced=True)"
-    And I press "bim.unload_project"
-    Then an IFC file does not exist
-    And "scene.BIMProjectProperties.is_loading" is "False"
+    And I press "bim.load_project(filepath='{cwd}/test/files/geolocation.ifc', is_advanced=True)"
+    When I set "scene.BIMProjectProperties.false_origin_mode" to "DISABLED"
+    When I set "scene.BIMProjectProperties.distance_limit" to "5"
+    And I press "bim.load_project_elements"
+    Then "scene.BIMGeoreferenceProperties.has_blender_offset" is "False"
+    And the object "IfcSite/My Site" is at "0,0,0"
+    And the object "IfcBuilding/My Building" is at "0,0,0"
+    And the object "IfcBuildingStorey/My Storey" is at "0,0,0"
+    And the object "IfcActuator/A" is at "7,3,0"
+    And the object "IfcActuator/B" is at "6,1,0"
+    And the object "IfcActuator/C" is at "0,0,0"
+    And the object "IfcActuator/D" is at "13,4,-1"
+    And the object "IfcActuator/E" is at "6,3,0"
+    And the object "IfcActuator/F" is at "3,3,0"
+    And the object "IfcActuator/G" is at "15,6,-1"
+    And the object "IfcActuator/H" is at "9,2,0"
+    And the object "IfcActuator/I" is at "3,3,0"
+    And the object "IfcActuator/J" is at "11,3,-1"
+    And the object "IfcActuator/K" is at "10,0,0"
+
+Scenario: Load project elements - all georeferencing coordinate situations - automatic false origin mode
+    Given an empty Blender session
+    And I press "bim.load_project(filepath='{cwd}/test/files/geolocation.ifc', is_advanced=True)"
+    When I set "scene.BIMProjectProperties.false_origin_mode" to "AUTOMATIC"
+    When I set "scene.BIMProjectProperties.distance_limit" to "5"
+    And I press "bim.load_project_elements"
+    Then "scene.BIMGeoreferenceProperties.has_blender_offset" is "True"
+    And "scene.BIMGeoreferenceProperties.blender_eastings" is "13000.0"
+    And "scene.BIMGeoreferenceProperties.blender_northings" is "4000.0"
+    And "scene.BIMGeoreferenceProperties.blender_orthogonal_height" is "-1000.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_x" is "13000.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_y" is "4000.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_z" is "-1000.0"
+    And the object "IfcSite/My Site" is at "0,0,0"
+    And the object "IfcBuilding/My Building" is at "0,0,0"
+    And the object "IfcBuildingStorey/My Storey" is at "0,0,0"
+    And the object "IfcActuator/A" is at "-6,-1,1"
+    And the object "IfcActuator/B" is at "-7,-3,1"
+    And the object "IfcActuator/C" is at "0,0,0"
+    And the object "IfcActuator/D" is at "0,0,0"
+    And the object "IfcActuator/E" is at "-7,-1,1"
+    And the object "IfcActuator/F" is at "-10,-1,1"
+    And the object "IfcActuator/G" is at "2,2,0"
+    And the object "IfcActuator/H" is at "-4,-2,1"
+    And the object "IfcActuator/I" is at "-10,-1,1"
+    And the object "IfcActuator/J" is at "-2,-1,0"
+    And the object "IfcActuator/K" is at "-3,-4,1"
+
+Scenario: Load project elements - all georeferencing coordinate situations - manual false origin mode
+    Given an empty Blender session
+    And I press "bim.load_project(filepath='{cwd}/test/files/geolocation.ifc', is_advanced=True)"
+    When I set "scene.BIMProjectProperties.false_origin_mode" to "MANUAL"
+    When I set "scene.BIMProjectProperties.false_origin" to "10000,0,0"
+    When I set "scene.BIMProjectProperties.distance_limit" to "5"
+    And I press "bim.load_project_elements"
+    Then "scene.BIMGeoreferenceProperties.has_blender_offset" is "True"
+    And "scene.BIMGeoreferenceProperties.blender_eastings" is "10000.0"
+    And "scene.BIMGeoreferenceProperties.blender_northings" is "0.0"
+    And "scene.BIMGeoreferenceProperties.blender_orthogonal_height" is "0.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_x" is "10000.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_y" is "0.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_z" is "0.0"
+    And the object "IfcSite/My Site" is at "0,0,0"
+    And the object "IfcBuilding/My Building" is at "0,0,0"
+    And the object "IfcBuildingStorey/My Storey" is at "0,0,0"
+    And the object "IfcActuator/A" is at "-3,3,0"
+    And the object "IfcActuator/B" is at "-4,1,0"
+    And the object "IfcActuator/C" is at "0,0,0"
+    And the object "IfcActuator/D" is at "3,4,-1"
+    And the object "IfcActuator/E" is at "-4,3,0"
+    And the object "IfcActuator/F" is at "-7,3,0"
+    And the object "IfcActuator/G" is at "5,6,-1"
+    And the object "IfcActuator/H" is at "-1,2,0"
+    And the object "IfcActuator/I" is at "-7,3,0"
+    And the object "IfcActuator/J" is at "1,3,-1"
+    And the object "IfcActuator/K" is at "0,0,0"
+    And the object "IfcActuator/D" has a cartesian point offset of "31,4,-1"
+    And the object "IfcActuator/G" has a cartesian point offset of "-25,6,-1"
+    And the object "IfcActuator/J" has a cartesian point offset of "11,3,-1"
+    And the object "IfcActuator/D" has a vertex at "3,2,-1"
+    And the object "IfcActuator/D" has a vertex at "5,2,-1"
+    And the object "IfcActuator/G" has a vertex at "5,4,-1"
+    And the object "IfcActuator/G" has a vertex at "7,4,-1"
+    And the object "IfcActuator/J" has a vertex at "1,1,-1"
+    And the object "IfcActuator/J" has a vertex at "3,1,-1"
+
+Scenario: Load project elements - all georeferencing coordinate situations with an offset site - disabled false origin mode
+    Given an empty Blender session
+    And I press "bim.load_project(filepath='{cwd}/test/files/geolocation-offsetsite.ifc', is_advanced=True)"
+    When I set "scene.BIMProjectProperties.false_origin_mode" to "DISABLED"
+    When I set "scene.BIMProjectProperties.distance_limit" to "5"
+    And I press "bim.load_project_elements"
+    Then "scene.BIMGeoreferenceProperties.has_blender_offset" is "False"
+    And the object "IfcSite/My Site" is at "0,10,0"
+    And the object "IfcBuilding/My Building" is at "0,10,0"
+    And the object "IfcBuildingStorey/My Storey" is at "0,10,0"
+    And the object "IfcActuator/A" is at "5.985,14.71,0"
+    And the object "IfcActuator/B" is at "5.5367,12.519,0"
+    And the object "IfcActuator/C" is at "0,10,0"
+    And the object "IfcActuator/D" is at "11.522,17.228,-1"
+    And the object "IfcActuator/E" is at "5.0191,14.451,0"
+    And the object "IfcActuator/F" is at "2.1213,13.674,0"
+    And the object "IfcActuator/G" is at "12.936,19.678,-1"
+    And the object "IfcActuator/H" is at "8.1757,14.261,0"
+    And the object "IfcActuator/I" is at "2.1213,13.674,0"
+    And the object "IfcActuator/J" is at "9.8487,15.745,-1"
+    And the object "IfcActuator/K" is at "9.6593,12.588,0"
+
+Scenario: Load project elements - all georeferencing coordinate situations with an offset site - automatic false origin mode
+    Given an empty Blender session
+    And I press "bim.load_project(filepath='{cwd}/test/files/geolocation-offsetsite.ifc', is_advanced=True)"
+    When I set "scene.BIMProjectProperties.false_origin_mode" to "AUTOMATIC"
+    When I set "scene.BIMProjectProperties.distance_limit" to "5"
+    And I press "bim.load_project_elements"
+    Then "scene.BIMGeoreferenceProperties.has_blender_offset" is "True"
+    And "scene.BIMGeoreferenceProperties.blender_eastings" is "0.0"
+    And "scene.BIMGeoreferenceProperties.blender_northings" is "10000.0"
+    And "scene.BIMGeoreferenceProperties.blender_orthogonal_height" is "0.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_x" is "0.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_y" is "10000.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_z" is "0.0"
+    And the object "IfcSite/My Site" is at "0,0,0"
+    And the object "IfcBuilding/My Building" is at "0,0,0"
+    And the object "IfcBuildingStorey/My Storey" is at "0,0,0"
+    And the object "IfcActuator/A" is at "7,3,0"
+    And the object "IfcActuator/B" is at "6,1,0"
+    And the object "IfcActuator/C" is at "0,0,0"
+    And the object "IfcActuator/D" is at "13,4,-1"
+    And the object "IfcActuator/E" is at "6,3,0"
+    And the object "IfcActuator/F" is at "3,3,0"
+    And the object "IfcActuator/G" is at "15,6,-1"
+    And the object "IfcActuator/H" is at "9,2,0"
+    And the object "IfcActuator/I" is at "3,3,0"
+    And the object "IfcActuator/J" is at "11,3,-1"
+    And the object "IfcActuator/K" is at "10,0,0"
+
+Scenario: Load project elements - all georeferencing coordinate situations with an offset site - manual false origin mode
+    Given an empty Blender session
+    And I press "bim.load_project(filepath='{cwd}/test/files/geolocation-offsetsite.ifc', is_advanced=True)"
+    When I set "scene.BIMProjectProperties.false_origin_mode" to "MANUAL"
+    When I set "scene.BIMProjectProperties.false_origin" to "0,10000,0"
+    When I set "scene.BIMProjectProperties.distance_limit" to "5"
+    And I press "bim.load_project_elements"
+    Then "scene.BIMGeoreferenceProperties.has_blender_offset" is "True"
+    And "scene.BIMGeoreferenceProperties.blender_eastings" is "0.0"
+    And "scene.BIMGeoreferenceProperties.blender_northings" is "10000.0"
+    And "scene.BIMGeoreferenceProperties.blender_orthogonal_height" is "0.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_x" is "0.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_y" is "10000.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_z" is "0.0"
+    And the object "IfcSite/My Site" is at "0,0,0"
+    And the object "IfcBuilding/My Building" is at "0,0,0"
+    And the object "IfcBuildingStorey/My Storey" is at "0,0,0"
+    And the object "IfcActuator/A" is at "5.985,4.71,0"
+    And the object "IfcActuator/B" is at "5.5367,2.519,0"
+    And the object "IfcActuator/C" is at "0,0,0"
+    And the object "IfcActuator/D" is at "11.522,7.228,-1"
+    And the object "IfcActuator/E" is at "5.0191,4.451,0"
+    And the object "IfcActuator/F" is at "2.1213,3.674,0"
+    And the object "IfcActuator/G" is at "12.936,9.678,-1"
+    And the object "IfcActuator/H" is at "8.1757,4.261,0"
+    And the object "IfcActuator/I" is at "2.1213,3.674,0"
+    And the object "IfcActuator/J" is at "9.8487,5.745,-1"
+    And the object "IfcActuator/K" is at "9.6593,2.588,0"
+    And the object "IfcActuator/D" has a cartesian point offset of "31,4,-1"
+    And the object "IfcActuator/G" has a cartesian point offset of "-25,6,-1"
+    And the object "IfcActuator/J" has a cartesian point offset of "11,3,-1"
+    And the object "IfcActuator/D" has a vertex at "12.039,5.296,-1"
+    And the object "IfcActuator/D" has a vertex at "13.971,5.814,-1"
+    And the object "IfcActuator/G" has a vertex at "13.454,7.746,-1"
+    And the object "IfcActuator/G" has a vertex at "15.385,8.264,-1"
+    And the object "IfcActuator/J" has a vertex at "10.366,3.813,-1"
+    And the object "IfcActuator/J" has a vertex at "12.298,4.331,-1"
+
+Scenario: Load project elements - all georeferencing coordinate situations with a map conversion - disabled false origin mode (this should be identical to the situation with no map conversion)
+    Given an empty Blender session
+    And I press "bim.load_project(filepath='{cwd}/test/files/geolocation-mapconversion.ifc', is_advanced=True)"
+    When I set "scene.BIMProjectProperties.false_origin_mode" to "DISABLED"
+    When I set "scene.BIMProjectProperties.distance_limit" to "5"
+    And I press "bim.load_project_elements"
+    Then "scene.BIMGeoreferenceProperties.has_blender_offset" is "False"
+    And the object "IfcSite/My Site" is at "0,0,0"
+    And the object "IfcBuilding/My Building" is at "0,0,0"
+    And the object "IfcBuildingStorey/My Storey" is at "0,0,0"
+    And the object "IfcActuator/A" is at "7,3,0"
+    And the object "IfcActuator/B" is at "6,1,0"
+    And the object "IfcActuator/C" is at "0,0,0"
+    And the object "IfcActuator/D" is at "13,4,-1"
+    And the object "IfcActuator/E" is at "6,3,0"
+    And the object "IfcActuator/F" is at "3,3,0"
+    And the object "IfcActuator/G" is at "15,6,-1"
+    And the object "IfcActuator/H" is at "9,2,0"
+    And the object "IfcActuator/I" is at "3,3,0"
+    And the object "IfcActuator/J" is at "11,3,-1"
+    And the object "IfcActuator/K" is at "10,0,0"
+
+Scenario: Load project elements - all georeferencing coordinate situations with a map conversion - automatic false origin mode (this should affect the Blender eastings and northings, which is now different to the Blender offset XYZ, but is otherwise identical to the non-map conversion variant)
+    Given an empty Blender session
+    And I press "bim.load_project(filepath='{cwd}/test/files/geolocation-mapconversion.ifc', is_advanced=True)"
+    When I set "scene.BIMProjectProperties.false_origin_mode" to "AUTOMATIC"
+    When I set "scene.BIMProjectProperties.distance_limit" to "5"
+    And I press "bim.load_project_elements"
+    Then "scene.BIMGeoreferenceProperties.has_blender_offset" is "True"
+    And "scene.BIMGeoreferenceProperties.blender_eastings" is "28000.0"
+    And "scene.BIMGeoreferenceProperties.blender_northings" is "4000.0"
+    And "scene.BIMGeoreferenceProperties.blender_orthogonal_height" is "-1000.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_x" is "13000.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_y" is "4000.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_z" is "-1000.0"
+    And the object "IfcSite/My Site" is at "0,0,0"
+    And the object "IfcBuilding/My Building" is at "0,0,0"
+    And the object "IfcBuildingStorey/My Storey" is at "0,0,0"
+    And the object "IfcActuator/A" is at "-6,-1,1"
+    And the object "IfcActuator/B" is at "-7,-3,1"
+    And the object "IfcActuator/C" is at "0,0,0"
+    And the object "IfcActuator/D" is at "0,0,0"
+    And the object "IfcActuator/E" is at "-7,-1,1"
+    And the object "IfcActuator/F" is at "-10,-1,1"
+    And the object "IfcActuator/G" is at "2,2,0"
+    And the object "IfcActuator/H" is at "-4,-2,1"
+    And the object "IfcActuator/I" is at "-10,-1,1"
+    And the object "IfcActuator/J" is at "-2,-1,0"
+    And the object "IfcActuator/K" is at "-3,-4,1"
+
+Scenario: Load project elements - all georeferencing coordinate situations with a map conversion - manual false origin mode (this should affect the Blender eastings and northings, which is now different to the Blender offset XYZ, but is otherwise identical to the non-map conversion variant)
+    Given an empty Blender session
+    And I press "bim.load_project(filepath='{cwd}/test/files/geolocation-mapconversion.ifc', is_advanced=True)"
+    When I set "scene.BIMProjectProperties.false_origin_mode" to "MANUAL"
+    When I set "scene.BIMProjectProperties.false_origin" to "25000,0,0"
+    When I set "scene.BIMProjectProperties.distance_limit" to "5"
+    And I press "bim.load_project_elements"
+    Then "scene.BIMGeoreferenceProperties.has_blender_offset" is "True"
+    And "scene.BIMGeoreferenceProperties.blender_eastings" is "25000.0"
+    And "scene.BIMGeoreferenceProperties.blender_northings" is "0.0"
+    And "scene.BIMGeoreferenceProperties.blender_orthogonal_height" is "0.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_x" is "10000.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_y" is "0.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_z" is "0.0"
+    And the object "IfcSite/My Site" is at "0,0,0"
+    And the object "IfcBuilding/My Building" is at "0,0,0"
+    And the object "IfcBuildingStorey/My Storey" is at "0,0,0"
+    And the object "IfcActuator/A" is at "-3,3,0"
+    And the object "IfcActuator/B" is at "-4,1,0"
+    And the object "IfcActuator/C" is at "0,0,0"
+    And the object "IfcActuator/D" is at "3,4,-1"
+    And the object "IfcActuator/E" is at "-4,3,0"
+    And the object "IfcActuator/F" is at "-7,3,0"
+    And the object "IfcActuator/G" is at "5,6,-1"
+    And the object "IfcActuator/H" is at "-1,2,0"
+    And the object "IfcActuator/I" is at "-7,3,0"
+    And the object "IfcActuator/J" is at "1,3,-1"
+    And the object "IfcActuator/K" is at "0,0,0"
+    And the object "IfcActuator/D" has a cartesian point offset of "31,4,-1"
+    And the object "IfcActuator/G" has a cartesian point offset of "-25,6,-1"
+    And the object "IfcActuator/J" has a cartesian point offset of "11,3,-1"
+    And the object "IfcActuator/D" has a vertex at "3,2,-1"
+    And the object "IfcActuator/D" has a vertex at "5,2,-1"
+    And the object "IfcActuator/G" has a vertex at "5,4,-1"
+    And the object "IfcActuator/G" has a vertex at "7,4,-1"
+    And the object "IfcActuator/J" has a vertex at "1,1,-1"
+    And the object "IfcActuator/J" has a vertex at "3,1,-1"
+
+Scenario: Load project elements - all georeferencing coordinate situations with map conversion and an offset site - disabled false origin mode
+    Given an empty Blender session
+    And I press "bim.load_project(filepath='{cwd}/test/files/geolocation-mapconversion-offsetsite.ifc', is_advanced=True)"
+    When I set "scene.BIMProjectProperties.false_origin_mode" to "DISABLED"
+    When I set "scene.BIMProjectProperties.distance_limit" to "5"
+    And I press "bim.load_project_elements"
+    Then "scene.BIMGeoreferenceProperties.has_blender_offset" is "False"
+    And the object "IfcSite/My Site" is at "0,10,0"
+    And the object "IfcBuilding/My Building" is at "0,10,0"
+    And the object "IfcBuildingStorey/My Storey" is at "0,10,0"
+    And the object "IfcActuator/A" is at "5.985,14.71,0"
+    And the object "IfcActuator/B" is at "5.5367,12.519,0"
+    And the object "IfcActuator/C" is at "0,10,0"
+    And the object "IfcActuator/D" is at "11.522,17.228,-1"
+    And the object "IfcActuator/E" is at "5.0191,14.451,0"
+    And the object "IfcActuator/F" is at "2.1213,13.674,0"
+    And the object "IfcActuator/G" is at "12.936,19.678,-1"
+    And the object "IfcActuator/H" is at "8.1757,14.261,0"
+    And the object "IfcActuator/I" is at "2.1213,13.674,0"
+    And the object "IfcActuator/J" is at "9.8487,15.745,-1"
+    And the object "IfcActuator/K" is at "9.6593,12.588,0"
+
+Scenario: Load project elements - all georeferencing coordinate situations with map conversion and an offset site - automatic false origin mode
+    Given an empty Blender session
+    And I press "bim.load_project(filepath='{cwd}/test/files/geolocation-mapconversion-offsetsite.ifc', is_advanced=True)"
+    When I set "scene.BIMProjectProperties.false_origin_mode" to "AUTOMATIC"
+    When I set "scene.BIMProjectProperties.distance_limit" to "5"
+    And I press "bim.load_project_elements"
+    Then "scene.BIMGeoreferenceProperties.has_blender_offset" is "True"
+    And "scene.BIMGeoreferenceProperties.blender_eastings" is "15000.0"
+    And "scene.BIMGeoreferenceProperties.blender_northings" is "10000.0"
+    And "scene.BIMGeoreferenceProperties.blender_orthogonal_height" is "0.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_x" is "0.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_y" is "10000.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_z" is "0.0"
+    And the object "IfcSite/My Site" is at "0,0,0"
+    And the object "IfcBuilding/My Building" is at "0,0,0"
+    And the object "IfcBuildingStorey/My Storey" is at "0,0,0"
+    And the object "IfcActuator/A" is at "7,3,0"
+    And the object "IfcActuator/B" is at "6,1,0"
+    And the object "IfcActuator/C" is at "0,0,0"
+    And the object "IfcActuator/D" is at "13,4,-1"
+    And the object "IfcActuator/E" is at "6,3,0"
+    And the object "IfcActuator/F" is at "3,3,0"
+    And the object "IfcActuator/G" is at "15,6,-1"
+    And the object "IfcActuator/H" is at "9,2,0"
+    And the object "IfcActuator/I" is at "3,3,0"
+    And the object "IfcActuator/J" is at "11,3,-1"
+    And the object "IfcActuator/K" is at "10,0,0"
+
+Scenario: Load project elements - all georeferencing coordinate situations with map conversion and an offset site - manual false origin mode
+    Given an empty Blender session
+    And I press "bim.load_project(filepath='{cwd}/test/files/geolocation-mapconversion-offsetsite.ifc', is_advanced=True)"
+    When I set "scene.BIMProjectProperties.false_origin_mode" to "MANUAL"
+    When I set "scene.BIMProjectProperties.false_origin" to "15000,10000,0"
+    When I set "scene.BIMProjectProperties.distance_limit" to "5"
+    And I press "bim.load_project_elements"
+    Then "scene.BIMGeoreferenceProperties.has_blender_offset" is "True"
+    And "scene.BIMGeoreferenceProperties.blender_eastings" is "15000.0"
+    And "scene.BIMGeoreferenceProperties.blender_northings" is "10000.0"
+    And "scene.BIMGeoreferenceProperties.blender_orthogonal_height" is "0.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_x" is "0.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_y" is "10000.0"
+    And "scene.BIMGeoreferenceProperties.blender_offset_z" is "0.0"
+    And the object "IfcSite/My Site" is at "0,0,0"
+    And the object "IfcBuilding/My Building" is at "0,0,0"
+    And the object "IfcBuildingStorey/My Storey" is at "0,0,0"
+    And the object "IfcActuator/A" is at "5.985,4.71,0"
+    And the object "IfcActuator/B" is at "5.5367,2.519,0"
+    And the object "IfcActuator/C" is at "0,0,0"
+    And the object "IfcActuator/D" is at "11.522,7.228,-1"
+    And the object "IfcActuator/E" is at "5.0191,4.451,0"
+    And the object "IfcActuator/F" is at "2.1213,3.674,0"
+    And the object "IfcActuator/G" is at "12.936,9.678,-1"
+    And the object "IfcActuator/H" is at "8.1757,4.261,0"
+    And the object "IfcActuator/I" is at "2.1213,3.674,0"
+    And the object "IfcActuator/J" is at "9.8487,5.745,-1"
+    And the object "IfcActuator/K" is at "9.6593,2.588,0"
+    And the object "IfcActuator/D" has a cartesian point offset of "31,4,-1"
+    And the object "IfcActuator/G" has a cartesian point offset of "-25,6,-1"
+    And the object "IfcActuator/J" has a cartesian point offset of "11,3,-1"
+    And the object "IfcActuator/D" has a vertex at "12.039,5.296,-1"
+    And the object "IfcActuator/D" has a vertex at "13.971,5.814,-1"
+    And the object "IfcActuator/G" has a vertex at "13.454,7.746,-1"
+    And the object "IfcActuator/G" has a vertex at "15.385,8.264,-1"
+    And the object "IfcActuator/J" has a vertex at "10.366,3.813,-1"
+    And the object "IfcActuator/J" has a vertex at "12.298,4.331,-1"
 
 Scenario: Link IFC
     Given an empty IFC project
@@ -438,16 +792,6 @@ Scenario: Export IFC - with moved grid axis location synchronised
     And I press "bim.load_project(filepath='{cwd}/test/files/temp/export.ifc')"
     Then the object "IfcGridAxis/01" bottom left corner is at "1,-2,0"
 
-Scenario: Export IFC - with changed spatial container synchronised
-    Given an empty Blender session
-    And I press "bim.load_project(filepath='{cwd}/test/files/basic.ifc')"
-    Then the object "IfcSlab/Slab" is in the collection "IfcBuildingStorey/Ground Floor"
-    When the object "IfcSlab/Slab" is placed in the collection "IfcBuildingStorey/Level 1"
-    And I press "export_ifc.bim(filepath='{cwd}/test/files/temp/export.ifc')"
-    And an empty Blender session is started
-    And I press "bim.load_project(filepath='{cwd}/test/files/temp/export.ifc')"
-    Then the object "IfcSlab/Slab" is in the collection "IfcBuildingStorey/Level 1"
-
 Scenario: Export IFC - with changed object scale synchronised
     Given an empty IFC project
     And I add a cube
@@ -461,21 +805,6 @@ Scenario: Export IFC - with changed object scale synchronised
     And an empty Blender session is started
     And I press "bim.load_project(filepath='{cwd}/test/files/temp/export.ifc')"
     Then the object "IfcWall/Cube" dimensions are "4,4,4"
-
-Scenario: Export IFC - with changed style colour synchronised
-    Given an empty IFC project
-    And I add a cube
-    And the object "Cube" is selected
-    And I add a material
-    And I set "scene.BIMRootProperties.ifc_product" to "IfcElement"
-    And I set "scene.BIMRootProperties.ifc_class" to "IfcWall"
-    And I press "bim.assign_class"
-    And the object "IfcWall/Cube" is selected
-    When the material "Material" colour is set to "1,0,0,1"
-    And I press "export_ifc.bim(filepath='{cwd}/test/files/temp/export.ifc')"
-    And an empty Blender session is started
-    And I press "bim.load_project(filepath='{cwd}/test/files/temp/export.ifc', should_start_fresh_session=False)"
-    Then the material "Material" colour is "1,0,0,1"
 
 Scenario: Export IFC - with changed style element synchronised
     Given an empty IFC project

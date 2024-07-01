@@ -279,7 +279,7 @@ class CreateDrawing(bpy.types.Operator):
                     svg_path = self.combine_svgs(context, underlay_svg, linework_svg, annotation_svg)
 
             tool.Drawing.open_with_user_command(
-                context.preferences.addons["blenderbim"].preferences.svg_command, svg_path
+                tool.Blender.get_addon_preferences().svg_command, svg_path
             )
 
         if self.print_all:
@@ -475,15 +475,15 @@ class CreateDrawing(bpy.types.Operator):
             with profile(f"Processing {context_type} context"):
                 if not context or not drawing_elements:
                     continue
-                geom_settings = ifcopenshell.geom.settings(
-                    DISABLE_TRIANGULATION=True, INCLUDE_CURVES=True
-                )
+                geom_settings = ifcopenshell.geom.settings()
+                geom_settings.set("dimensionality", ifcopenshell.ifcopenshell_wrapper.CURVES_SURFACES_AND_SOLIDS)
+                geom_settings.set("iterator-output", ifcopenshell.ifcopenshell_wrapper.NATIVE)
                 if ifc.by_id(context[0]).ContextType == "Plan" and "PLAN_VIEW" in target_view:
                     offset = ifcopenshell.ifcopenshell_wrapper.float_array_3()
                     # A 2mm Z offset to combat Z-fighting in plan or RCPs
                     offset[2] = 0.002 if target_view == "PLAN_VIEW" else -0.002
                     geom_settings.offset = offset
-                geom_settings.set_context_ids(context)
+                geom_settings.set("context-ids", context)
                 it = ifcopenshell.geom.iterator(
                     geom_settings, ifc, multiprocessing.cpu_count(), include=drawing_elements
                 )
@@ -561,7 +561,8 @@ class CreateDrawing(bpy.types.Operator):
             if tool.Ifc.get() == ifc and self.camera_element not in drawing_elements:
                 with profile("Camera element"):
                     # The camera must always be included, regardless of any include/exclude filters.
-                    geom_settings = ifcopenshell.geom.settings(DISABLE_TRIANGULATION=True)
+                    geom_settings = ifcopenshell.geom.settings()
+                    geom_settings.set("iterator-output", ifcopenshell.ifcopenshell_wrapper.NATIVE)
                     it = ifcopenshell.geom.iterator(geom_settings, ifc, include=[self.camera_element])
                     for elem in it:
                         self.serialiser.write(elem)
@@ -874,11 +875,14 @@ class CreateDrawing(bpy.types.Operator):
         return svg_path
 
     def setup_serialiser(self, target_view):
-        self.svg_settings = ifcopenshell.geom.settings(
-            DISABLE_TRIANGULATION=True, INCLUDE_CURVES=True
-        )
+        self.svg_settings = ifcopenshell.geom.settings()
+        self.svg_settings.set("dimensionality", ifcopenshell.ifcopenshell_wrapper.CURVES_SURFACES_AND_SOLIDS)
+        self.svg_settings.set("iterator-output", ifcopenshell.ifcopenshell_wrapper.NATIVE)
         self.svg_buffer = ifcopenshell.geom.serializers.buffer()
-        self.serialiser = ifcopenshell.geom.serializers.svg(self.svg_buffer, self.svg_settings)
+        self.serialiser_settings = ifcopenshell.geom.serializer_settings()
+        self.serialiser = ifcopenshell.geom.serializers.svg(
+            self.svg_buffer, self.svg_settings, self.serialiser_settings
+        )
         self.serialiser.setWithoutStoreys(True)
         self.serialiser.setPolygonal(True)
         self.serialiser.setUseHlrPoly(True)
@@ -982,7 +986,7 @@ class CreateDrawing(bpy.types.Operator):
 
             obj = tool.Ifc.get_object(element)
 
-            if not obj: # This is a linked model object. For now, do nothing.
+            if not obj:  # This is a linked model object. For now, do nothing.
                 continue
 
             if not self.is_manifold(obj):
@@ -1370,8 +1374,8 @@ class CreateSheets(bpy.types.Operator, Operator):
                 ),
             )
 
-        svg2pdf_command = context.preferences.addons["blenderbim"].preferences.svg2pdf_command
-        svg2dxf_command = context.preferences.addons["blenderbim"].preferences.svg2dxf_command
+        svg2pdf_command = tool.Blender.get_addon_preferences().svg2pdf_command
+        svg2dxf_command = tool.Blender.get_addon_preferences().svg2dxf_command
 
         if svg2pdf_command:
             # With great power comes great responsibility. Example:
@@ -1389,9 +1393,9 @@ class CreateSheets(bpy.types.Operator, Operator):
                 subprocess.run([replacements.get(c, c) for c in command])
 
         if svg2pdf_command:
-            tool.Drawing.open_with_user_command(context.preferences.addons["blenderbim"].preferences.pdf_command, pdf)
+            tool.Drawing.open_with_user_command(tool.Blender.get_addon_preferences().pdf_command, pdf)
         else:
-            tool.Drawing.open_with_user_command(context.preferences.addons["blenderbim"].preferences.svg_command, svg)
+            tool.Drawing.open_with_user_command(tool.Blender.get_addon_preferences().svg_command, svg)
 
 
 class SelectAllDrawings(bpy.types.Operator):
@@ -1459,7 +1463,7 @@ class OpenDrawing(bpy.types.Operator):
 
         for drawing_uri in drawing_uris:
             tool.Drawing.open_with_user_command(
-                context.preferences.addons["blenderbim"].preferences.svg_command, drawing_uri
+                tool.Blender.get_addon_preferences().svg_command, drawing_uri
             )
         return {"FINISHED"}
 
@@ -2348,6 +2352,32 @@ class RemoveTextLiteral(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class OrderTextLiteralUp(bpy.types.Operator):
+    bl_idname = "bim.order_text_literal_up"
+    bl_label = "Move Text Literal Up"
+    bl_options = {"REGISTER", "UNDO"}
+
+    literal_prop_id: bpy.props.IntProperty()
+
+    def execute(self, context):
+        obj = context.active_object
+        obj.BIMTextProperties.literals.move(self.literal_prop_id, self.literal_prop_id - 1)
+        return {"FINISHED"}
+
+
+class OrderTextLiteralDown(bpy.types.Operator):
+    bl_idname = "bim.order_text_literal_down"
+    bl_label = "Move Text Literal Down"
+    bl_options = {"REGISTER", "UNDO"}
+
+    literal_prop_id: bpy.props.IntProperty()
+
+    def execute(self, context):
+        obj = context.active_object
+        obj.BIMTextProperties.literals.move(self.literal_prop_id, self.literal_prop_id + 1)
+        return {"FINISHED"}
+
+
 class AssignSelectedObjectAsProduct(bpy.types.Operator):
     bl_idname = "bim.assign_selected_as_product"
     bl_label = "Assign Selected Object As Product"
@@ -2746,7 +2776,7 @@ class AddReferenceImage(bpy.types.Operator, Operator):
         obj.material_slots[0].material = material
         bpy.ops.bim.add_style()
 
-        style = ifc_file.by_id(material.BIMMaterialProperties.ifc_style_id)
+        style = ifc_file.by_id(material.BIMStyleProperties.ifc_definition_id)
         tool.Style.assign_style_to_object(style, obj)
 
         # TODO: IfcSurfaceStyleRendering is unnecessary here, added it only because

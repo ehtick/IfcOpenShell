@@ -742,7 +742,6 @@ class ShowOpenings(Operator, tool.Ifc.Operator):
             if tool.Ifc.is_moved(obj):
                 blenderbim.core.geometry.edit_object_placement(tool.Ifc, tool.Geometry, tool.Surveyor, obj=obj)
             openings = tool.Model.load_openings(
-                element,
                 [
                     r.RelatedOpeningElement
                     for r in element.HasOpenings
@@ -904,7 +903,7 @@ class DecorationsHandler:
         batch.draw(shader)
 
     def __call__(self, context):
-        self.addon_prefs = context.preferences.addons["blenderbim"].preferences
+        self.addon_prefs = tool.Blender.get_addon_preferences()
         selected_elements_color = self.addon_prefs.decorator_color_selected
         unselected_elements_color = self.addon_prefs.decorator_color_unselected
         special_elements_color = self.addon_prefs.decorator_color_special

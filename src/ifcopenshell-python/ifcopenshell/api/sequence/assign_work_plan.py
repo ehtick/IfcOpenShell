@@ -17,11 +17,11 @@
 # along with IfcOpenShell.  If not, see <http://www.gnu.org/licenses/>.
 
 import ifcopenshell
-import ifcopenshell.api
+import ifcopenshell.api.project
+import ifcopenshell.api.aggregate
 
 
-# TODO: rename to assign_work_plan for consistency
-def assign_workplan(
+def assign_work_plan(
     file: ifcopenshell.file, work_schedule: ifcopenshell.entity_instance, work_plan: ifcopenshell.entity_instance
 ) -> ifcopenshell.entity_instance:
     """Assigns a work schedule to a work plan
@@ -42,26 +42,24 @@ def assign_workplan(
     .. code:: python
 
         # This will hold all our construction schedules
-        work_plan = ifcopenshell.api.run("sequence.add_work_plan", model, name="Construction")
+        work_plan = ifcopenshell.api.sequence.add_work_plan(model, name="Construction")
 
         # Alternatively, if you create a schedule without a work plan ...
-        schedule = ifcopenshell.api.run("sequence.add_work_schedule", model, name="Construction Schedule A")
+        schedule = ifcopenshell.api.sequence.add_work_schedule(model, name="Construction Schedule A")
 
         # ... you can assign the work plan afterwards.
-        ifcopenshell.api.run("sequence.assign_workplan", work_schedule=schedule, work_plan=work_plan)
+        ifcopenshell.api.sequence.assign_work_plan(work_schedule=schedule, work_plan=work_plan)
     """
     settings = {"work_schedule": work_schedule, "work_plan": work_plan}
 
     # TODO: this is an ambiguity by buildingSMART
     # See https://forums.buildingsmart.org/t/is-the-ifcworkschedule-project-declaration-mutually-exclusive-to-aggregation-within-a-relating-ifcworkplan/3510
-    ifcopenshell.api.run(
-        "project.unassign_declaration",
+    ifcopenshell.api.project.unassign_declaration(
         file,
         definitions=[settings["work_schedule"]],
         relating_context=file.by_type("IfcContext")[0],
     )
-    rel_aggregates = ifcopenshell.api.run(
-        "aggregate.assign_object",
+    rel_aggregates = ifcopenshell.api.aggregate.assign_object(
         file,
         **{
             "products": [settings["work_schedule"]],

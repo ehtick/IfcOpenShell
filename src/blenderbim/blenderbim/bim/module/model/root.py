@@ -17,34 +17,34 @@
 # along with BlenderBIM Add-on.  If not, see <http://www.gnu.org/licenses/>.
 
 import bpy
+import ifcopenshell.file
 import blenderbim.bim.handler
 import blenderbim.tool as tool
-from blenderbim.bim.ifc import IfcStore
+from blenderbim.bim.ifc import IFC_CONNECTED_TYPE
+from typing import Any
 
 
-def sync_name(usecase_path, ifc_file, settings):
+def sync_name(usecase_path: str, ifc_file: ifcopenshell.file, settings: dict[str, Any]) -> None:
     if usecase_path == "attribute.edit_attributes":
         element = settings["product"]
     elif usecase_path == "style.edit_presentation_style":
         element = settings["style"]
+    else:
+        raise Exception(f"Unsupported usecase: '{usecase_path}'.")
 
+    element: ifcopenshell.entity_instance
     if "Name" not in settings["attributes"]:
         return
     obj = tool.Ifc.get_object(element)
     if not obj:
         return
+    obj: IFC_CONNECTED_TYPE
     if isinstance(obj, bpy.types.Object):
         new_name = "{}/{}".format(element.is_a(), settings["attributes"]["Name"] or "Unnamed")
+        collection = obj.BIMObjectProperties.collection
+        if collection:
+            collection.name = new_name
     elif isinstance(obj, bpy.types.Material):
         new_name = settings["attributes"]["Name"] or "Unnamed"
-        material = tool.Ifc.get_entity(obj)
-        if material and material != element:
-            material.Name = new_name
-        style = tool.Style.get_style(obj)
-        if style and style != element:
-            style.Name = new_name
-    collection = obj.BIMObjectProperties.collection
-    if collection:
-        collection.name = new_name
     obj.name = new_name
     blenderbim.bim.handler.refresh_ui_data()

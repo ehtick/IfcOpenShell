@@ -49,7 +49,7 @@ class MaterialCreator:
         self.ifc_import_settings = ifc_import_settings
         self.ifc_importer = ifc_importer
 
-    def create(self, element: ifcopenshell.entity_instance, obj: bpy.types.Object, mesh: bpy.types.Mesh) -> None:
+    def create(self, element: ifcopenshell.entity_instance, obj: bpy.types.Object, mesh: OBJECT_DATA_TYPE) -> None:
         self.mesh = mesh
         # as ifcopenshell triangulates the mesh, we need to merge it to quads again
         self.obj = obj
@@ -58,6 +58,10 @@ class MaterialCreator:
         ):
             return
         if not self.mesh or self.mesh.name in self.parsed_meshes:
+            return
+
+        # We don't support curve styles yet.
+        if isinstance(mesh, bpy.types.Curve):
             return
 
         # mesh["ios_materials"] can contain:
@@ -77,8 +81,8 @@ class MaterialCreator:
 
     def load_existing_materials(self) -> None:
         for material in bpy.data.materials:
-            if material.BIMMaterialProperties.ifc_style_id:
-                self.styles[material.BIMMaterialProperties.ifc_style_id] = material
+            if ifc_definition_id := material.BIMStyleProperties.ifc_definition_id:
+                self.styles[ifc_definition_id] = material
 
     def get_ifc_coordinate(self, material: bpy.types.Material) -> Union[ifcopenshell.entity_instance, None]:
         """Get IfcTextureCoordinate"""
@@ -188,7 +192,7 @@ class IfcImporter:
         self.element_types: set[ifcopenshell.entity_instance] = set()
         self.spatial_elements: set[ifcopenshell.entity_instance] = set()
         self.type_products = {}
-        self.meshes = {}
+        self.meshes: dict[str, OBJECT_DATA_TYPE] = {}
         self.mesh_shapes = {}
         self.time = 0
         self.unit_scale = 1
@@ -241,8 +245,8 @@ class IfcImporter:
         self.profile_code("Create elements")
         self.create_generic_elements(self.annotations)
         self.profile_code("Create annotations")
-        self.create_grids()
-        self.profile_code("Create grids")
+        self.create_positioning_elements()
+        self.profile_code("Create positioning elements")
         self.create_spatial_elements()
         self.profile_code("Create spatial elements")
         self.create_structural_items()
@@ -506,11 +510,25 @@ class IfcImporter:
             if not props.has_blender_offset:
                 tool.Loader.guess_false_origin(self.file)
 
+    def create_positioning_elements(self):
+        self.create_grids()
+        self.create_alignments()
+
+    def create_alignments(self):
+        if not self.ifc_import_settings.should_load_geometry:
+            return
+        if self.file.schema in ("IFC2X3", "IFC4"):
+            return
+        self.create_generic_elements(set(self.file.by_type("IfcLinearPositioningElement")))
+        self.create_generic_elements(set(self.file.by_type("IfcReferent")))
+        # Loading IfcLinearElement for test purposes for now only.
+        # In the future we will make it lazy loaded and toggleable with a special UI.
+        # self.create_generic_elements(set(self.file.by_type("IfcLinearElement")))
+
     def create_grids(self):
         if not self.ifc_import_settings.should_load_geometry:
             return
-        grids = self.file.by_type("IfcGrid")
-        for grid in grids:
+        for grid in self.file.by_type("IfcGrid"):
             shape = None
             if not grid.UAxes or not grid.VAxes:
                 # Revit can create invalid grids
@@ -520,7 +538,7 @@ class IfcImporter:
                 shape = tool.Loader.create_generic_shape(grid)
             grid_obj = self.create_product(grid, shape)
             grid_placement = self.get_element_matrix(grid)
-            if bpy.context.preferences.addons["blenderbim"].preferences.lock_grids_on_import:
+            if tool.Blender.get_addon_preferences().lock_grids_on_import:
                 grid_obj.lock_location = (True, True, True)
                 grid_obj.lock_rotation = (True, True, True)
             self.create_grid_axes(grid.UAxes, grid_obj, grid_placement)
@@ -533,7 +551,7 @@ class IfcImporter:
             shape = tool.Loader.create_generic_shape(axis.AxisCurve)
             mesh = self.create_mesh(axis, shape)
             obj = bpy.data.objects.new(f"IfcGridAxis/{axis.AxisTag}", mesh)
-            if bpy.context.preferences.addons["blenderbim"].preferences.lock_grids_on_import:
+            if tool.Blender.get_addon_preferences().lock_grids_on_import:
                 obj.lock_location = (True, True, True)
                 obj.lock_rotation = (True, True, True)
             self.link_element(axis, obj)
@@ -602,7 +620,7 @@ class IfcImporter:
         print("Done creating geometry")
 
     def create_spatial_elements(self) -> None:
-        if bpy.context.preferences.addons["blenderbim"].preferences.spatial_elements_unselectable:
+        if tool.Blender.get_addon_preferences().spatial_elements_unselectable:
             self.create_generic_elements(self.spatial_elements, unselectable=True)
         else:
             self.create_generic_elements(self.spatial_elements, unselectable=False)
@@ -871,6 +889,7 @@ class IfcImporter:
             # We use numpy here because Blender mathutils.Matrix is not accurate enough
             mat = np.array(shape.transformation.matrix).reshape((4, 4), order="F")
             self.set_matrix_world(obj, tool.Loader.apply_blender_offset_to_matrix_world(obj, mat))
+            assert mesh  # Type checker.
             self.material_creator.create(element, obj, mesh)
         elif mesh:
             self.set_matrix_world(
@@ -1230,8 +1249,6 @@ class IfcImporter:
         blender_material.use_fake_user = True
 
         self.link_element(style, blender_material)
-
-        blender_material.BIMMaterialProperties.ifc_style_id = style.id()
         self.material_creator.styles[style.id()] = blender_material
 
         style_elements = tool.Style.get_style_elements(blender_material)
@@ -1296,7 +1313,11 @@ class IfcImporter:
             ):
                 return representation.Items[0].MappingTarget
 
-    def create_curve(self, element: ifcopenshell.entity_instance, shape) -> bpy.types.Curve:
+    def create_curve(
+        self,
+        element: ifcopenshell.entity_instance,
+        shape: Union[ifcopenshell.geom.ShapeElementType, ifcopenshell.geom.ShapeType],
+    ) -> bpy.types.Curve:
         if hasattr(shape, "geometry"):
             geometry = shape.geometry
         else:

@@ -22,7 +22,7 @@ from typing import Iterable, Any, Union, Literal, Optional
 
 import ifcopenshell
 import ifcopenshell.ifcopenshell_wrapper as ifcopenshell_wrapper
-import ifcopenshell.api
+import ifcopenshell.api.unit
 
 prefixes = {
     "EXA": 1e18,
@@ -749,10 +749,23 @@ def format_length(
 def is_attr_type(
     content_type: ifcopenshell_wrapper.parameter_type,
     ifc_unit_type_name: str,
+    include_select_types: bool = True
 ) -> Union[ifcopenshell_wrapper.type_declaration, None]:
     cur_decl = content_type
+
+    if include_select_types:
+        if hasattr(cur_decl, "select_list"):
+            for select_item in cur_decl.select_list():
+                if is_attr_type(select_item, ifc_unit_type_name):
+                    return select_item
+
     while hasattr(cur_decl, "declared_type") is True:
         cur_decl = cur_decl.declared_type()
+        if include_select_types:
+            if hasattr(cur_decl, "select_list"):
+                for select_item in cur_decl.select_list():
+                    if is_attr_type(select_item, ifc_unit_type_name):
+                        return select_item
         if hasattr(cur_decl, "name") is False:
             continue
         if cur_decl.name() == ifc_unit_type_name:
@@ -800,6 +813,9 @@ def iter_element_and_attributes_per_type(
             if val is None:
                 continue
 
+            if isinstance(val, ifcopenshell.entity_instance) and not val.is_a(attr_type_name):
+                continue
+
             yield element, attr, val
 
 
@@ -815,7 +831,7 @@ def convert_file_length_units(ifc_file: ifcopenshell.file, target_units: str = "
 
     old_length = next(u for u in unit_assignment.Units if getattr(u, "UnitType", None) == "LENGTHUNIT")
     if si_unit:
-        new_length = ifcopenshell.api.run("unit.add_si_unit", file_patched, unit_type="LENGTHUNIT", prefix=prefix)
+        new_length = ifcopenshell.api.unit.add_si_unit(file_patched, unit_type="LENGTHUNIT", prefix=prefix)
     else:
         target_units = target_units.lower()
         if imperial_types.get(target_units) != "LENGTHUNIT":
@@ -823,7 +839,7 @@ def convert_file_length_units(ifc_file: ifcopenshell.file, target_units: str = "
                 f'Couldn\'t identify target units "{target_units}". '
                 'The method supports singular unit names like "CENTIMETER", "METER", "FOOT", etc.'
             )
-        new_length = ifcopenshell.api.run("unit.add_conversion_based_unit", file_patched, name=target_units)
+        new_length = ifcopenshell.api.unit.add_conversion_based_unit(file_patched, name=target_units)
 
     # support tuple of tuples, as in IfcCartesianPointList3D.CoordList
     def convert_value(value):
@@ -833,8 +849,12 @@ def convert_file_length_units(ifc_file: ifcopenshell.file, target_units: str = "
 
     # Traverse all elements and their nested attributes in the file and convert them
     for element, attr, val in iter_element_and_attributes_per_type(file_patched, "IfcLengthMeasure"):
-        new_value = convert_value(val)
-        setattr(element, attr.name(), new_value)
+        if isinstance(val, ifcopenshell.entity_instance):
+            new_value = convert_value(val.wrappedValue)
+            getattr(element, attr.name()).wrappedValue = new_value
+        else:
+            new_value = convert_value(val)
+            setattr(element, attr.name(), new_value)
 
     file_patched.remove(old_length)
     unit_assignment.Units = tuple([new_length, *unit_assignment.Units])

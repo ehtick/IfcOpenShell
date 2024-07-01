@@ -16,9 +16,11 @@
 # You should have received a copy of the GNU General Public License
 # along with BlenderBIM Add-on.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import annotations
 import bpy
 import bmesh
 import json
+import os
 import ifcopenshell.api
 import ifcopenshell.util.element
 import blenderbim.core.tool
@@ -50,19 +52,17 @@ class Blender(blenderbim.core.tool.Blender):
     OBJECT_TYPES_THAT_SUPPORT_EDIT_GPENCIL_MODE = ("GPENCIL",)
     TYPE_MANAGER_ICON = "LIGHTPROBE_VOLUME" if bpy.app.version >= (4, 1, 0) else "LIGHTPROBE_GRID"
 
-
     @classmethod
     def activate_camera(cls, obj: bpy.types.Object) -> None:
 
-        
         area = tool.Blender.get_view3d_area()
         is_local_view = area.spaces[0].local_view is not None
 
         if is_local_view:
             # Turn off local view before activating drawing, and then turn it on again.
             for a in bpy.context.screen.areas:
-                if a.type == 'VIEW_3D':
-                    override = {'area': a, 'region': a.regions[-1], 'space': a.spaces[0], 'scene': bpy.context.scene}
+                if a.type == "VIEW_3D":
+                    override = {"area": a, "region": a.regions[-1], "space": a.spaces[0], "scene": bpy.context.scene}
                     with bpy.context.temp_override(**override):
                         bpy.ops.view3d.localview()
                     bpy.context.scene.camera = obj
@@ -70,10 +70,7 @@ class Blender(blenderbim.core.tool.Blender):
         else:
             bpy.context.scene.camera = obj
 
-        area.spaces[0].region_3d.view_perspective = 'CAMERA'
-
-
-
+        area.spaces[0].region_3d.view_perspective = "CAMERA"
 
     @classmethod
     def get_area_props(cls, context: bpy.types.Context) -> Any:
@@ -127,6 +124,10 @@ class Blender(blenderbim.core.tool.Blender):
         while bpy.data.objects.get(f"{ifc_class}/{name} {i}"):
             i += 1
         return f"{name} {i}"
+
+    @classmethod
+    def get_active_object(cls) -> bpy.types.Object:
+        return bpy.context.view_layer.objects.active
 
     @classmethod
     def get_selected_objects(cls) -> set[bpy.types.Object]:
@@ -479,7 +480,7 @@ class Blender(blenderbim.core.tool.Blender):
             obj.select_set(False)
         context.view_layer.objects.active = active_object
         active_object.select_set(True)
-        
+
     @classmethod
     def select_object(cls, obj: bpy.types.Object):
         try:
@@ -1074,3 +1075,14 @@ class Blender(blenderbim.core.tool.Blender):
             bpy.utils.unregister_class(panel)
             bpy.utils.register_class(panel)
         del polls[panel]
+
+    @classmethod
+    def get_blender_addon_package_name(cls) -> str:
+        if bpy.app.version >= (4, 2, 0):
+            return blenderbim.BLENDER_PACKAGE_NAME
+        return "blenderbim"
+
+    @classmethod
+    def get_addon_preferences(cls) -> blenderbim.bim.ui.BIM_ADDON_preferences:
+        blender_package_name = cls.get_blender_addon_package_name()
+        return bpy.context.preferences.addons[blender_package_name].preferences

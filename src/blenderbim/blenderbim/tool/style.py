@@ -25,7 +25,7 @@ import blenderbim.core.tool
 import blenderbim.tool as tool
 import blenderbim.bim.helper
 from mathutils import Color
-from typing import Union, Any, Optional
+from typing import Union, Any, Optional, Literal, assert_never
 
 # fmt: off
 TEXTURE_MAPS_BY_METHODS = {
@@ -43,6 +43,8 @@ STYLE_PROPS_MAP = {
     "specular_colour": "SpecularColour",
 }
 
+STYLE_TYPES = Literal["Shading", "External"]
+
 
 class Style(blenderbim.core.tool.Style):
     @classmethod
@@ -51,15 +53,11 @@ class Style(blenderbim.core.tool.Style):
 
     @classmethod
     def delete_object(cls, obj: bpy.types.Material) -> None:
-        bpy.data.materials.remove(obj)
+        tool.Blender.remove_data_block(obj)
 
     @classmethod
-    def disable_editing(cls, obj: bpy.types.Material) -> None:
-        obj.BIMStyleProperties.is_editing = False
-
-    @classmethod
-    def disable_editing_external_style(cls, obj: bpy.types.Material) -> None:
-        obj.BIMStyleProperties.is_editing_external_style = False
+    def disable_editing(cls) -> None:
+        bpy.context.scene.BIMStylesProperties.is_editing_style = 0
 
     @classmethod
     def disable_editing_styles(cls) -> None:
@@ -72,24 +70,19 @@ class Style(blenderbim.core.tool.Style):
         return new_style
 
     @classmethod
-    def enable_editing(cls, obj: bpy.types.Material) -> None:
-        obj.BIMStyleProperties.is_editing = True
-
-    @classmethod
-    def enable_editing_external_style(cls, obj: bpy.types.Material) -> None:
-        obj.BIMStyleProperties.is_editing_external_style = True
+    def enable_editing(cls, style: ifcopenshell.entity_instance) -> None:
+        props = bpy.context.scene.BIMStylesProperties
+        props.is_editing_style = style.id()
+        props.is_editing_class = "IfcSurfaceStyle"
 
     @classmethod
     def enable_editing_styles(cls) -> None:
         bpy.context.scene.BIMStylesProperties.is_editing = True
 
     @classmethod
-    def export_surface_attributes(cls, obj: bpy.types.Material) -> dict[str, Any]:
-        return blenderbim.bim.helper.export_attributes(obj.BIMStyleProperties.attributes)
-
-    @classmethod
-    def export_external_style_attributes(cls, obj: bpy.types.Material) -> dict[str, Any]:
-        return blenderbim.bim.helper.export_attributes(obj.BIMStyleProperties.external_style_attributes)
+    def export_surface_attributes(cls) -> dict[str, Any]:
+        props = bpy.context.scene.BIMStylesProperties
+        return blenderbim.bim.helper.export_attributes(props.attributes)
 
     @classmethod
     def get_active_style_type(cls) -> str:
@@ -108,14 +101,22 @@ class Style(blenderbim.core.tool.Style):
         return obj.name
 
     @classmethod
+    def get_currently_edited_material(cls) -> bpy.types.Material:
+        props = bpy.context.scene.BIMStylesProperties
+        style = tool.Ifc.get().by_id(props.is_editing_style)
+        obj = tool.Ifc.get_object(style)
+        assert isinstance(obj, bpy.types.Material)
+        return obj
+
+    @classmethod
     def get_style(cls, obj: bpy.types.Material) -> Union[ifcopenshell.entity_instance, None]:
-        """Get linked IFC style based on material's BIMMaterialProperties.ifc_style_id.
+        """Get linked IFC style based on material's BIMStyleProperties.ifc_definition_id.
 
         Return None if material is not linked to IFC or it's linked to non-existent element.
         """
-        if obj.BIMMaterialProperties.ifc_style_id:
+        if ifc_definition_id := obj.BIMStyleProperties.ifc_definition_id:
             try:
-                return tool.Ifc.get().by_id(obj.BIMMaterialProperties.ifc_style_id)
+                return tool.Ifc.get().by_id(ifc_definition_id)
             except:
                 return
 
@@ -124,9 +125,9 @@ class Style(blenderbim.core.tool.Style):
         cls, blender_material_or_style: Union[bpy.types.Material, ifcopenshell.entity_instance]
     ) -> dict[str, ifcopenshell.entity_instance]:
         if isinstance(blender_material_or_style, bpy.types.Material):
-            if not blender_material_or_style.BIMMaterialProperties.ifc_style_id:
+            if not (ifc_definition_id := blender_material_or_style.BIMStyleProperties.ifc_definition_id):
                 return {}
-            style = tool.Ifc.get().by_id(blender_material_or_style.BIMMaterialProperties.ifc_style_id)
+            style = tool.Ifc.get().by_id(ifc_definition_id)
         else:
             style = blender_material_or_style
         style_elements = {}
@@ -443,16 +444,16 @@ class Style(blenderbim.core.tool.Style):
 
     @classmethod
     def get_surface_shading_style(cls, obj: bpy.types.Material) -> Union[ifcopenshell.entity_instance, None]:
-        if obj.BIMMaterialProperties.ifc_style_id:
-            style = tool.Ifc.get().by_id(obj.BIMMaterialProperties.ifc_style_id)
+        if ifc_definition_id := obj.BIMStyleProperties.ifc_definition_id:
+            style = tool.Ifc.get().by_id(ifc_definition_id)
             items = [s for s in style.Styles if s.is_a() == "IfcSurfaceStyleShading"]
             if items:
                 return items[0]
 
     @classmethod
     def get_surface_texture_style(cls, obj: bpy.types.Material) -> Union[ifcopenshell.entity_instance, None]:
-        if obj.BIMMaterialProperties.ifc_style_id:
-            style = tool.Ifc.get().by_id(obj.BIMMaterialProperties.ifc_style_id)
+        if ifc_definition_id := obj.BIMStyleProperties.ifc_definition_id:
+            style = tool.Ifc.get().by_id(ifc_definition_id)
             items = [s for s in style.Styles if s.is_a("IfcSurfaceStyleWithTextures")]
             if items:
                 return items[0]
@@ -506,14 +507,8 @@ class Style(blenderbim.core.tool.Style):
             new.total_elements = len(ifcopenshell.util.element.get_elements_by_style(tool.Ifc.get(), style))
 
     @classmethod
-    def import_surface_attributes(cls, style: ifcopenshell.entity_instance, obj: bpy.types.Material) -> None:
-        attributes = obj.BIMStyleProperties.attributes
-        attributes.clear()
-        blenderbim.bim.helper.import_attributes2(style, attributes)
-
-    @classmethod
-    def import_external_style_attributes(cls, style: ifcopenshell.entity_instance, obj: bpy.types.Material) -> None:
-        attributes = obj.BIMStyleProperties.external_style_attributes
+    def import_surface_attributes(cls, style: ifcopenshell.entity_instance) -> None:
+        attributes = bpy.context.scene.BIMStylesProperties.attributes
         attributes.clear()
         blenderbim.bim.helper.import_attributes2(style, attributes)
 
@@ -633,3 +628,31 @@ class Style(blenderbim.core.tool.Style):
     @classmethod
     def reload_material_from_ifc(cls, blender_material: bpy.types.Material) -> None:
         blender_material.BIMStyleProperties.active_style_type = blender_material.BIMStyleProperties.active_style_type
+
+    @classmethod
+    def switch_shading(cls, blender_material: bpy.types.Material, style_type: STYLE_TYPES) -> None:
+        if style_type == "External":
+            try:
+                bpy.ops.bim.activate_external_style(material_name=blender_material.name)
+            except RuntimeError as error:
+                if str(error).startswith("Error: Error loading external style for "):
+                    return
+                raise error
+        elif style_type == "Shading":
+            style_elements = tool.Style.get_style_elements(blender_material)
+            rendering_style = None
+            texture_style = None
+
+            for surface_style in style_elements.values():
+                if surface_style.is_a() == "IfcSurfaceStyleShading":
+                    tool.Loader.create_surface_style_shading(blender_material, surface_style)
+                elif surface_style.is_a("IfcSurfaceStyleRendering"):
+                    rendering_style = surface_style
+                    tool.Loader.create_surface_style_rendering(blender_material, surface_style)
+                elif surface_style.is_a("IfcSurfaceStyleWithTextures"):
+                    texture_style = surface_style
+
+            if rendering_style and texture_style:
+                tool.Loader.create_surface_style_with_textures(blender_material, rendering_style, texture_style)
+        else:
+            assert_never(style_type)

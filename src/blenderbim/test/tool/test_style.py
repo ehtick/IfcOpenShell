@@ -47,10 +47,10 @@ class TestCanSupportRenderingStyle(NewFile):
 
 class TestDisableEditing(NewFile):
     def test_run(self):
-        obj = bpy.data.materials.new("Material")
-        obj.BIMStyleProperties.is_editing = True
-        subject.disable_editing(obj)
-        assert obj.BIMStyleProperties.is_editing is False
+        props = bpy.context.scene.BIMStylesProperties
+        props.is_editing_style = 1
+        subject.disable_editing()
+        assert props.is_editing_style == 0
 
 
 class TestDisableEditingStyles(NewFile):
@@ -62,9 +62,10 @@ class TestDisableEditingStyles(NewFile):
 
 class TestEnableEditing(NewFile):
     def test_run(self):
-        obj = bpy.data.materials.new("Material")
-        subject.enable_editing(obj)
-        assert obj.BIMStyleProperties.is_editing is True
+        props = bpy.context.scene.BIMStylesProperties
+        style = ifcopenshell.file().create_entity("IfcSurfaceStyle")
+        subject.enable_editing(style)
+        assert props.is_editing_style is style.id()
 
 
 class TestEnableEditingStyles(NewFile):
@@ -77,8 +78,7 @@ class TestEnableEditingStyles(NewFile):
 class TestExportSurfaceAttributes(NewFile):
     def test_run(self):
         TestImportSurfaceAttributes().test_run()
-        obj = bpy.data.materials.get("Material")
-        assert subject.export_surface_attributes(obj) == {"Name": "Name", "Side": "BOTH"}
+        assert subject.export_surface_attributes() == {"Name": "Name", "Side": "BOTH"}
 
 
 class TestGetActiveStyleType(NewFile):
@@ -125,12 +125,12 @@ class TestGetStyle(NewFile):
         tool.Ifc.set(ifcopenshell.file())
         style = tool.Ifc.get().createIfcSurfaceStyle()
         obj = bpy.data.materials.new("Material")
-        obj.BIMMaterialProperties.ifc_style_id = style.id()
+        obj.BIMStyleProperties.ifc_definition_id = style.id()
         assert subject.get_style(obj) == style
 
     def test_getting_nothing_for_a_broken_link_style(self):
         obj = bpy.data.materials.new("Material")
-        obj.BIMMaterialProperties.ifc_style_id = 1
+        obj.BIMStyleProperties.ifc_definition_id = 1
         assert subject.get_style(obj) == None
 
 
@@ -322,7 +322,7 @@ class TestGetSurfaceRenderingStyle(NewFile):
         style_item = tool.Ifc.get().createIfcSurfaceStyleRendering()
         style = tool.Ifc.get().createIfcSurfaceStyle(Styles=[style_item])
         obj = bpy.data.materials.new("Material")
-        obj.BIMMaterialProperties.ifc_style_id = style.id()
+        obj.BIMStyleProperties.ifc_definition_id = style.id()
         assert subject.get_surface_rendering_style(obj) == style_item
 
 
@@ -361,7 +361,7 @@ class TestGetSurfaceShadingStyle(NewFile):
         style_item = tool.Ifc.get().createIfcSurfaceStyleShading()
         style = tool.Ifc.get().createIfcSurfaceStyle(Styles=[style_item])
         obj = bpy.data.materials.new("Material")
-        obj.BIMMaterialProperties.ifc_style_id = style.id()
+        obj.BIMStyleProperties.ifc_definition_id = style.id()
         assert subject.get_surface_shading_style(obj) == style_item
 
     def test_do_not_get_rendering_styles(self):
@@ -369,7 +369,7 @@ class TestGetSurfaceShadingStyle(NewFile):
         style_item = tool.Ifc.get().createIfcSurfaceStyleRendering()
         style = tool.Ifc.get().createIfcSurfaceStyle(Styles=[style_item])
         obj = bpy.data.materials.new("Material")
-        obj.BIMMaterialProperties.ifc_style_id = style.id()
+        obj.BIMStyleProperties.ifc_definition_id = style.id()
         assert subject.get_surface_shading_style(obj) is None
 
 
@@ -379,7 +379,7 @@ class TestGetSurfaceTextureStyle(NewFile):
         style_item = tool.Ifc.get().createIfcSurfaceStyleWithTextures()
         style = tool.Ifc.get().createIfcSurfaceStyle(Styles=[style_item])
         obj = bpy.data.materials.new("Material")
-        obj.BIMMaterialProperties.ifc_style_id = style.id()
+        obj.BIMStyleProperties.ifc_definition_id = style.id()
         assert subject.get_surface_texture_style(obj) == style_item
 
 
@@ -395,24 +395,24 @@ class TestGetUVMaps(NewFile):
 class TestImportSurfaceAttributes(NewFile):
     def test_run(self):
         tool.Ifc.set(ifc := ifcopenshell.file())
-        style = ifc.createIfcSurfaceStyle("Name", "BOTH")
-        obj = bpy.data.materials.new("Material")
-        subject.import_surface_attributes(style, obj)
-        assert obj.BIMStyleProperties.attributes.get("Name").string_value == "Name"
-        assert obj.BIMStyleProperties.attributes.get("Side").enum_value == "BOTH"
+        props = bpy.context.scene.BIMStylesProperties
+        style = ifc.create_entity("IfcSurfaceStyle", "Name", "BOTH")
+        subject.import_surface_attributes(style)
+        assert props.attributes.get("Name").string_value == "Name"
+        assert props.attributes.get("Side").enum_value == "BOTH"
 
     def test_importing_surface_attributes_twice(self):
         tool.Ifc.set(ifc := ifcopenshell.file())
-        style = ifc.createIfcSurfaceStyle("Name", "BOTH")
-        obj = bpy.data.materials.new("Material")
-        subject.import_surface_attributes(style, obj)
-        assert len(obj.BIMStyleProperties.attributes) == 2
-        assert obj.BIMStyleProperties.attributes.get("Name").string_value == "Name"
-        assert obj.BIMStyleProperties.attributes.get("Side").enum_value == "BOTH"
-        subject.import_surface_attributes(style, obj)
-        assert len(obj.BIMStyleProperties.attributes) == 2
-        assert obj.BIMStyleProperties.attributes.get("Name").string_value == "Name"
-        assert obj.BIMStyleProperties.attributes.get("Side").enum_value == "BOTH"
+        style = ifc.create_entity("IfcSurfaceStyle", "Name", "BOTH")
+        props = bpy.context.scene.BIMStylesProperties
+        subject.import_surface_attributes(style)
+        assert len(props.attributes) == 2
+        assert props.attributes.get("Name").string_value == "Name"
+        assert props.attributes.get("Side").enum_value == "BOTH"
+        subject.import_surface_attributes(style)
+        assert len(props.attributes) == 2
+        assert props.attributes.get("Name").string_value == "Name"
+        assert props.attributes.get("Side").enum_value == "BOTH"
 
 
 class TestImportPresentationStyles(NewFile):

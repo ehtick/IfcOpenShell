@@ -74,7 +74,7 @@ STYLE_TYPES = [
 
 def update_shading_styles(self, context):
     for mat in bpy.data.materials:
-        if mat.BIMMaterialProperties.ifc_style_id == 0:
+        if mat.BIMStyleProperties.ifc_definition_id == 0:
             continue
         tool.Style.change_current_style_type(mat, self.active_style_type)
 
@@ -253,49 +253,18 @@ class BIMStylesProperties(PropertyGroup):
     )
 
 
-def switch_shading(blender_material: bpy.types.Material, style_type: Literal["External", "Shading"]) -> None:
-    if style_type == "External":
-        try:
-            bpy.ops.bim.activate_external_style(material_name=blender_material.name)
-        except RuntimeError as error:
-            if str(error).startswith("Error: Error loading external style for "):
-                return
-            raise error
-    elif style_type == "Shading":
-        style_elements = tool.Style.get_style_elements(blender_material)
-        rendering_style = None
-        texture_style = None
-
-        for surface_style in style_elements.values():
-            if surface_style.is_a() == "IfcSurfaceStyleShading":
-                tool.Loader.create_surface_style_shading(blender_material, surface_style)
-            elif surface_style.is_a("IfcSurfaceStyleRendering"):
-                rendering_style = surface_style
-                tool.Loader.create_surface_style_rendering(blender_material, surface_style)
-            elif surface_style.is_a("IfcSurfaceStyleWithTextures"):
-                texture_style = surface_style
-
-        if rendering_style and texture_style:
-            tool.Loader.create_surface_style_with_textures(blender_material, rendering_style, texture_style)
-
-
 def update_shading_style(self, context):
     blender_material = self.id_data
     style_elements = tool.Style.get_style_elements(blender_material)
     if self.active_style_type == "External":
         if tool.Style.has_blender_external_style(style_elements):
-            switch_shading(blender_material, self.active_style_type)
+            tool.Style.switch_shading(blender_material, self.active_style_type)
     elif self.active_style_type == "Shading":
-        switch_shading(blender_material, self.active_style_type)
+        tool.Style.switch_shading(blender_material, self.active_style_type)
 
 
 class BIMStyleProperties(PropertyGroup):
-    # TODO: remove, as attributes already moved to styles ui
-    attributes: CollectionProperty(name="Attributes", type=Attribute)
-    is_editing: BoolProperty(name="Is Editing")
-    external_style_attributes: CollectionProperty(name="External Style Attributes", type=Attribute)
-    is_editing_external_style: BoolProperty(name="Is Editing External Style")
-
+    ifc_definition_id: IntProperty(name="IFC Definition ID")
     active_style_type: EnumProperty(
         name="Active Style Type",
         description="Update current blender material to match style type",

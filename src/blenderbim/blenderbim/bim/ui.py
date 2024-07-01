@@ -33,17 +33,24 @@ from . import ifc
 from blenderbim import get_debug_info
 import blenderbim.bim
 import blenderbim.tool as tool
-from blenderbim.bim.helper import IfcHeaderExtractor
+from ifcopenshell.util.file import IfcHeaderExtractor
 from blenderbim.bim.prop import Attribute
+from typing import Optional
 
 
 class IFCFileSelector:
-    def is_existing_ifc_file(self, filepath=None):
+    filepath: str
+
+    def is_existing_ifc_file(self, filepath: Optional[str] = None) -> bool:
+        """Check if file path exists and if it's an IFC file.
+
+        If `filepath` is not provided, will use filepath property from the current operator.
+        """
         if filepath is None:
             filepath = self.filepath
         return os.path.exists(filepath) and "ifc" in os.path.splitext(filepath)[1].lower()
 
-    def get_filepath(self):
+    def get_filepath(self) -> str:
         """get filepath taking into account relative paths"""
         if self.use_relative_path:
             filepath = os.path.relpath(self.filepath, bpy.path.abspath("//"))
@@ -184,7 +191,7 @@ class BIM_UL_topics(bpy.types.UIList):
 
 
 class BIM_ADDON_preferences(bpy.types.AddonPreferences):
-    bl_idname = "blenderbim"
+    bl_idname = tool.Blender.get_blender_addon_package_name()
     svg2pdf_command: StringProperty(name="SVG to PDF Command", description='E.g. [["inkscape", "svg", "-o", pdf]]')
     svg2dxf_command: StringProperty(
         name="SVG to DXF Command",
@@ -427,6 +434,28 @@ class BIM_PT_tabs(Panel):
         tab_entry.enabled = enabled
 
 
+class BIM_PT_tab_new_project_wizard(Panel):
+    bl_label = "New Project Wizard"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "scene"
+
+    @classmethod
+    def poll(cls, context):
+        if not tool.Blender.is_tab(context, "PROJECT"):
+            return False
+        props = context.scene.BIMProperties
+        pprops = context.scene.BIMProjectProperties
+        if pprops.is_loading:
+            return False
+        elif tool.Ifc.get() or props.ifc_file:
+            return False
+        return True
+
+    def draw(self, context):
+        pass
+
+
 class BIM_PT_tab_project_info(Panel):
     bl_label = "Project Info"
     bl_space_type = "PROPERTIES"
@@ -435,7 +464,15 @@ class BIM_PT_tab_project_info(Panel):
 
     @classmethod
     def poll(cls, context):
-        return tool.Blender.is_tab(context, "PROJECT")
+        if not tool.Blender.is_tab(context, "PROJECT"):
+            return False
+        props = context.scene.BIMProperties
+        pprops = context.scene.BIMProjectProperties
+        if pprops.is_loading:
+            return True
+        elif tool.Ifc.get() or props.ifc_file:
+            return True
+        return False
 
     def draw(self, context):
         pass

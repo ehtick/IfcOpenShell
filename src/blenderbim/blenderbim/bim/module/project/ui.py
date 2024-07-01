@@ -18,6 +18,7 @@
 
 import os
 import blenderbim.bim
+import blenderbim.tool as tool
 from blenderbim.bim.helper import prop_with_search
 from bpy.types import Panel, Menu, UIList
 from blenderbim.bim.ifc import IfcStore
@@ -36,6 +37,28 @@ class BIM_MT_project(Menu):
         self.layout.operator("bim.new_project", text="New Project Wizard").preset = "wizard"
 
 
+class BIM_MT_recent_projects(Menu):
+    bl_idname = "BIM_MT_recent_projects"
+    bl_label = "Open Recent IFC Project"
+
+    def draw(self, context):
+        paths = tool.Project.get_recent_ifc_projects()
+        if not paths:
+            self.layout.label(text="No Recent IFC Projects")
+            return
+
+        for path in paths:
+            op = self.layout.operator(
+                "bim.load_project", text=path.name, icon_value=blenderbim.bim.icons["IFC"].icon_id
+            )
+            op.filepath = str(path)
+            op.should_start_fresh_session = True
+            op.use_detailed_tooltip = True
+
+        self.layout.separator()
+        self.layout.operator("bim.clear_recent_ifc_projects", icon="TRASH")
+
+
 class BIM_MT_new_project(Menu):
     bl_idname = "BIM_MT_new_project"
     bl_label = "New Project"
@@ -44,6 +67,7 @@ class BIM_MT_new_project(Menu):
         self.layout.operator_context = "INVOKE_DEFAULT"
         op = self.layout.operator("bim.load_project", text="Open IFC Project", icon="FILEBROWSER")
         op.should_start_fresh_session = True
+        self.layout.menu("BIM_MT_recent_projects", icon="NONE")
         # Do we need to set it back to exec default?
         # self.layout.operator_context = "EXEC_DEFAULT"
         self.layout.separator()
@@ -67,6 +91,7 @@ def file_menu(self, context):
     self.layout.menu("BIM_MT_project", icon="COLLECTION_NEW")
     op = self.layout.operator("bim.load_project", text="Open IFC Project", icon="FILEBROWSER")
     op.should_start_fresh_session = True
+    self.layout.menu("BIM_MT_recent_projects", icon="NONE")
     self.layout.separator()
     op = self.layout.operator("bim.save_project", icon="FILE_TICK", text="Save IFC Project")
     op.should_save_as = False
@@ -102,8 +127,6 @@ class BIM_PT_project(Panel):
                 self.draw_loaded_project_ui(context)
             else:
                 self.draw_unsaved_project_ui(context)
-        else:
-            self.draw_project_setup_ui(context)
 
     def draw_advanced_loading_ui(self, context):
         pprops = context.scene.BIMProjectProperties
@@ -161,7 +184,6 @@ class BIM_PT_project(Panel):
 
         row = self.layout.row(align=True)
         row.operator("bim.load_project_elements")
-        row.operator("bim.unload_project", text="", icon="CANCEL")
 
     def draw_editing_buttons(self, context, row):
         pprops = context.scene.BIMProjectProperties
@@ -242,9 +264,21 @@ class BIM_PT_project(Panel):
         row = self.layout.row(align=True)
         row.prop(props, "ifc_file", text="")
         row.operator("bim.select_ifc_file", icon="FILE_FOLDER", text="")
-        row.operator("bim.unload_project", text="", icon="CANCEL")
 
-    def draw_project_setup_ui(self, context):
+
+class BIM_PT_new_project_wizard(Panel):
+    bl_label = "New Project Wizard"
+    bl_idname = "BIM_PT_new_project_wizard"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "scene"
+    bl_options = {"HIDE_HEADER"}
+    bl_parent_id = "BIM_PT_tab_new_project_wizard"
+
+    def draw(self, context):
+        self.layout.use_property_decorate = False
+        self.layout.use_property_split = True
+
         props = context.scene.BIMProperties
         pprops = context.scene.BIMProjectProperties
         prop_with_search(self.layout, pprops, "export_schema")
